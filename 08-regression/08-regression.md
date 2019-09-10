@@ -4,7 +4,7 @@ author:
   name: Grant R. McDermott
   affiliation: University of Oregon | EC 607
   # email: grantmcd@uoregon.edu
-date: Lecture 8  #"19 April 2019"
+date: Lecture 8  #"27 June 2019"
 output: 
   html_document:
     theme: flatly
@@ -362,7 +362,7 @@ tidy(ols1_robust_clustered, conf.int = T)
 
 ### Aside on HAC (Newey-West) standard errors
 
-On thing I want to flag is that the `estimatr` package does not yet offer support for HAC (i.e. heteroskedasticity and autocorrelation consistent) standard errors *a la* [Newey-West](https://en.wikipedia.org/wiki/Newey%E2%80%93West_estimator). I've submitted a [feature request](https://github.com/DeclareDesign/estimatr/issues/272) on GitHub --- vote up if you would like to see it added sooner! --- but you can still obtain these pretty easily using the aforementioned-mentioned `sandwich` package. For example, we can use `sandwich::NeweyWest()` on our existing `ols1` object to obtain HAC SEs for it.
+On thing I want to flag is that the `estimatr` package does not yet offer support for HAC (i.e. heteroskedasticity and autocorrelation consistent) standard errors *a la* [Newey-West](https://en.wikipedia.org/wiki/Newey%E2%80%93West_estimator). I've submitted a [feature request](https://github.com/DeclareDesign/estimatr/issues/272) on GitHub --- vote up if you would like to see it added sooner! --- but you can still obtain these pretty easily using the aforementioned `sandwich` package. For example, we can use `sandwich::NeweyWest()` on our existing `ols1` object to obtain HAC SEs for it.
 
 
 ```r
@@ -652,7 +652,9 @@ Fixed effects models are more common than random effects models in economics (in
 
 ## Instrumental variables
 
-Again, lots of options here. See: `?AER::ivreg`, `?estimatr::iv_robust`, and `?lfe::felm`. They all follow a similar syntax, where the IV first-stage regression is specified after a `|` following the main regression. I'll demonstrate using an example taken from the [AER package](https://cran.r-project.org/web/packages/AER/vignettes/AER.pdf), just because we haven't used it in this lecture yet. I'll follow their lead in using one of the package's own datasets on average cigarette consumption by US state.
+As you would have guessed by now, there are a number of ways to run instrumental variable (IV) regressions in R. I'll walk through three options using the `AER::ivreg()`, `estimatr::iv_robust()`, and `lfe::felm()` functions, respectively. These are all going to follow a similar syntax, where the IV first-stage regression is specified after a **`|`** following the main regression. However, there are also some subtle and important differences, which is why I want to go through each of them. After that, I'll let you decide which of the three options is your favourite.
+
+The dataset that we'll be using here is a panel of US cigarette consumption by state, which is taken from the [AER package](https://cran.r-project.org/web/packages/AER/vignettes/AER.pdf). Let's load the data, add some modified variables, and then take a quick look at it. Note that I'm going to limit the dataset to 2005 only, given that I want to focus the IV syntax and don't want to deal with the panel structure of the data. (Though that's very easily done, as we've already seen.)
 
 
 ```r
@@ -666,10 +668,39 @@ cigs <-
     rincome = income/population/cpi,
     rtax = tax/cpi,
     tdiff = (taxs - tax)/cpi
-    )
+    ) %>%
+  as_tibble()
+## Create a subset of the data limited to 1995
+cigs95 <- cigs %>% filter(year==1995)
+cigs95
 ```
 
-In this case, we are interested in regressing the number of cigarettes consumed per capita (i.e. "packs") on their average cost and people's real incomes. The problem is that the price is endogenous, so we need to instrument for it using different tax variables. We could implement this in R using `AER::ivreg()` as follows:
+```
+## # A tibble: 48 x 13
+##    state year    cpi population packs income   tax price  taxs rprice
+##    <fct> <fct> <dbl>      <dbl> <dbl>  <dbl> <dbl> <dbl> <dbl>  <dbl>
+##  1 AL    1995   1.52    4262731 101.  8.39e7  40.5  158.  41.9   104.
+##  2 AR    1995   1.52    2480121 111.  4.60e7  55.5  176.  63.9   115.
+##  3 AZ    1995   1.52    4306908  72.0 8.89e7  65.3  199.  74.8   130.
+##  4 CA    1995   1.52   31493524  56.9 7.71e8  61    211.  74.8   138.
+##  5 CO    1995   1.52    3738061  82.6 9.29e7  44    167.  44     110.
+##  6 CT    1995   1.52    3265293  79.5 1.04e8  74    218.  86.4   143.
+##  7 DE    1995   1.52     718265 124.  1.82e7  48    166.  48     109.
+##  8 FL    1995   1.52   14185403  93.1 3.34e8  57.9  188.  68.5   123.
+##  9 GA    1995   1.52    7188538  97.5 1.60e8  36    157.  37.4   103.
+## 10 IA    1995   1.52    2840860  92.4 6.02e7  60    191.  69.1   125.
+## # … with 38 more rows, and 3 more variables: rincome <dbl>, rtax <dbl>,
+## #   tdiff <dbl>
+```
+
+Now, assume that we are interested in regressing the number of cigarettes packs consumed per capita on their average price and people's real incomes. The problem is that the price is endogenous (because it is simultaneously determined by demand and supply), so we need to instrument for it using different tax variables. That is, we want to run the following:
+
+$$price_i = \pi_0 + \pi_1 tdiff_i + + \pi_2 rtax_i + v_i  \hspace{1cm} \text{(First stage)}$$
+$$packs_i = \beta_0 + \beta_2\widehat{price_i} + \beta_1 rincome_i + u_i \hspace{1cm} \text{(Second stage)}$$
+
+### Option 1: `AER::ivreg()`
+
+Let's start with `AER::ivreg()` as our first IV regression option; if for no other reason than that's where our data are coming from. The key point from the below code chunk is that the first-stage regression is going to be specified after the **`|`** and will include *all* exogenous variables.
 
 
 ```r
@@ -679,8 +710,8 @@ In this case, we are interested in regressing the number of cigarettes consumed 
 iv_reg <- 
   ivreg(
     log(packs) ~ log(rprice) + log(rincome) | ## The main regression. "rprice" is endogenous
-      log(rincome) + tdiff + rtax, ## The first-stage regression. Note that we include "rincome" b/c it is exogenous
-    data = cigs %>% filter(year == "1995")
+      log(rincome) + tdiff + rtax, ## List all exogenous variables, including "rincome"
+    data = cigs95
     )
 summary(iv_reg, diagnostics = TRUE)
 ```
@@ -689,7 +720,7 @@ summary(iv_reg, diagnostics = TRUE)
 ## 
 ## Call:
 ## ivreg(formula = log(packs) ~ log(rprice) + log(rincome) | log(rincome) + 
-##     tdiff + rtax, data = cigs %>% filter(year == "1995"))
+##     tdiff + rtax, data = cigs95)
 ## 
 ## Residuals:
 ##        Min         1Q     Median         3Q        Max 
@@ -714,7 +745,25 @@ summary(iv_reg, diagnostics = TRUE)
 ## Wald test: 13.28 on 2 and 45 DF,  p-value: 2.931e-05
 ```
 
-And here's another example using `estimatr::iv_robust()`. This will default to using HC2 robust standard errors, although we could specify other options if we so wished (including clustering). More importantly, note that the syntax is effectively identical to the previous example.
+I want to emphasise that you might find the above syntax a little counterintuitive --- or, at least, unusual --- if you're coming from a language like Stata.^[Assuming that you have already created the logged variables and subsetted the data, the Stata equivalent would be something like `ivreg log_packs = log_rincome (log_rprice = tdiff rtax)`.] Note that we didn't specify the endogenous variable (i.e. "rprice") directly. Rather, we told R which are the *exogenous* variables. It then figured out which were the endogenous variables that needed to be instrumented and ran the necessary first-stage regression(s) in the background. This approach actually makes quite a lot of sense if you think about the underlying theory of IV. But different strokes for different folks. 
+
+The good news for those who prefer the Stata-style syntax is that `AER::ivreg()` also accepts an alternate way of specifying the first-stage. This time, we'll denote our endogenous "rprice" variable with `. -price` and include only the instrumental variables after the `|` break. Feel free to check yourself, but the outcome will be exactly the same.
+
+
+```r
+## Run the IV regression 
+iv_reg2 <- 
+  ivreg(
+    log(packs) ~ log(rprice) + log(rincome) | 
+      . -log(rprice) + tdiff + rtax, ## Alternative way of specifying the first-stage.
+    data = cigs95
+  )
+```
+
+
+### Option 2: `estimatr::iv_robust()`
+
+Our second IV option comes from the `estimatr` package that we saw earlier. This will default to using HC2 robust standard errors although, as before, we could specify other options if we so wished (including clustering). More importantly, note that the syntax is effectively identical to the previous example. All we need to do is change the function call from `AER::ivreg()` to `estimatr::iv_robust()`.
 
 
 ```r
@@ -722,10 +771,10 @@ And here's another example using `estimatr::iv_robust()`. This will default to u
 
 ## Run the IV regression with robust SEs
 iv_reg_robust <- 
-  iv_robust( ## We only need to change the function call. The rest of the syntax stays the same.
+  iv_robust( ## We only need to change the function call. Everything else stays the same.
     log(packs) ~ log(rprice) + log(rincome) | 
       log(rincome) + tdiff + rtax,
-    data = cigs %>% filter(year == "1995")
+    data = cigs95
     )
 summary(iv_reg_robust, diagnostics = TRUE)
 ```
@@ -734,8 +783,7 @@ summary(iv_reg_robust, diagnostics = TRUE)
 ## 
 ## Call:
 ## iv_robust(formula = log(packs) ~ log(rprice) + log(rincome) | 
-##     log(rincome) + tdiff + rtax, data = cigs %>% filter(year == 
-##     "1995"))
+##     log(rincome) + tdiff + rtax, data = cigs95)
 ## 
 ## Standard error type:  HC2 
 ## 
@@ -749,8 +797,86 @@ summary(iv_reg_robust, diagnostics = TRUE)
 ## F-statistic:  15.5 on 2 and 45 DF,  p-value: 7.55e-06
 ```
 
+### Option 3: `felm::lfe()`
 
-**Challenge:** Try to run an IV regression using `lfe:felm()`. However, this time use the whole `cigs` data frame (i.e. not subsetting to 1995) and use year fixed effects too. Note that the IV formula specification will be a little different to the previous two examples --- I personally find it more intuitive, but check the examples in the help documentation.
+Finally, we get to my personal favourite IV option using the `lfe::felm()` function that we already covered in the panel data section above.^[Needless to say, it includes all of same benefits that we saw earlier: support for high-level fixed effects, multiway clustering, etc.] It's my favourite option not because I tend work with panel data, but also because I find it has the most natural syntax. In fact, it very closely resembles Stata's approach to writing out the first-stage, where you specify the endogenous variable(s) and the instruments only.
+
+
+```r
+# library(lfe) ## Already loaded
+
+iv_felm <- 
+  felm(
+    log(packs) ~ log(rincome) |
+      0 | ## No FEs
+      (log(rprice) ~ tdiff + rtax), ## First-stage. Note the surrounding parentheses
+    data = cigs95
+  )
+summary(iv_felm)
+```
+
+```
+## 
+## Call:
+##    felm(formula = log(packs) ~ log(rincome) | 0 | (log(rprice) ~      tdiff + rtax), data = cigs95) 
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.60069 -0.08622 -0.00100  0.11647  0.37342 
+## 
+## Coefficients:
+##                    Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)          9.8950     1.0586   9.348 4.12e-12 ***
+## log(rincome)         0.2804     0.2386   1.175    0.246    
+## `log(rprice)(fit)`  -1.2774     0.2632  -4.853 1.50e-05 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.1879 on 45 degrees of freedom
+## Multiple R-squared(full model): 0.4294   Adjusted R-squared: 0.4041 
+## Multiple R-squared(proj model): 0.4294   Adjusted R-squared: 0.4041 
+## F-statistic(full model):13.28 on 2 and 45 DF, p-value: 2.931e-05 
+## F-statistic(proj model): 13.28 on 2 and 45 DF, p-value: 2.931e-05 
+## F-statistic(endog. vars):23.56 on 1 and 45 DF, p-value: 1.496e-05
+```
+
+Note that in the above example, we inserted a "0" where the fixed effect slot goes, since we only used a subset of the data. Just for fun then, here's another IV regression with `felm()`. This time, I'll use the whole `cigs` data frame (i.e. not subsetting to 1995), and use both year and state fixed effects to control for the panel structure.
+
+
+```r
+iv_felm_all <- 
+  felm(
+    log(packs) ~ log(rincome) |
+      year + state | ## Now include FEs
+      (log(rprice) ~ tdiff + rtax), 
+    data = cigs ## Use whole panel data set
+  )
+summary(iv_felm_all)
+```
+
+```
+## 
+## Call:
+##    felm(formula = log(packs) ~ log(rincome) | year + state | (log(rprice) ~      tdiff + rtax), data = cigs) 
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.08393 -0.03851  0.00000  0.03851  0.08393 
+## 
+## Coefficients:
+##                    Estimate Std. Error t value Pr(>|t|)    
+## log(rincome)         0.4620     0.3081   1.500    0.141    
+## `log(rprice)(fit)`  -1.2024     0.1712  -7.024  9.4e-09 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.06453 on 45 degrees of freedom
+## Multiple R-squared(full model): 0.9668   Adjusted R-squared: 0.9299 
+## Multiple R-squared(proj model): 0.5466   Adjusted R-squared: 0.04281 
+## F-statistic(full model):26.21 on 50 and 45 DF, p-value: < 2.2e-16 
+## F-statistic(proj model): 27.71 on 2 and 45 DF, p-value: 1.436e-08 
+## F-statistic(endog. vars):49.33 on 1 and 45 DF, p-value: 9.399e-09
+```
 
 ## Other topics
 
@@ -896,7 +1022,7 @@ See the [gsynth package](https://yiqingxu.org/software/gsynth/gsynth_examples.ht
 
 ### Bayesian regression
 
-We could spend a whole course on Bayesian models. The very, very short version is that R offers outstanding support for Bayesian models and data analysis. You will find convenient interfaces to all of the major MCMC and Bayesian software engines: [Stan](https://mc-stan.org/users/interfaces/rstan), [JAGS](http://mcmc-jags.sourceforge.net/), TensorFlow (via [Greta](https://greta-stats.org/)), etc. Here follows a *super* simple example using the [rstanarm package](http://mc-stan.org/rstanarm/). Note that we did not install this package with the others above, as it can take fairly long and involve some minor troubleshooting.^[FWIW, on my Linux machine (running Arch/Antergos) I had to install `stan` (and thus `rstanarm`) by running R through the shell. For some reason, RStudio kept closing midway through the installation process.]
+We could spend a whole course on Bayesian models. The very, very short version is that R offers outstanding support for Bayesian models and data analysis. You will find convenient interfaces to all of the major MCMC and Bayesian software engines: [Stan](https://mc-stan.org/users/interfaces/rstan), [JAGS](http://mcmc-jags.sourceforge.net/), TensorFlow (via [Greta](https://greta-stats.org/)), etc. Here follows a *super* simple example using the [rstanarm package](http://mc-stan.org/rstanarm/). Note that we did not install this package with the others above, as it can take fairly long and involve some minor troubleshooting.^[FWIW, on my machine (running Arch Linux) I had to install `stan` (and thus `rstanarm`) by running R through the shell. For some reason, RStudio kept closing midway through the installation process.]
 
 
 ```r
@@ -1099,4 +1225,4 @@ huxreg(ols_dv, ols_ie, ols_hdfe)
 - Speaking of books, several introductory texts are freely available, including [*Introduction to Econometrics with R*](https://www.econometrics-with-r.org/) (Christoph Hanck *et al.*) and [*Using R for Introductory Econometrics*](http://www.urfie.net/) (Florian Heiss).
 - [Tyler Ransom](https://twitter.com/tyleransom) has a nice [cheat sheet](https://github.com/tyleransom/EconometricsLabs/blob/master/tidyRcheatsheet.pdf) for common regression tasks and specifications.
 - [Itamar Caspi](https://twitter.com/itamarcaspi) has written a neat unofficial appendix to this lecture, [*recipes for Dummies*](https://itamarcaspi.rbind.io/post/recipes-for-dummies/). The title might be a little inscrutable if you haven't heard of the `recipes` package before, but basically it handles "tidy" data preprocessing, which is an especially important topic for machine learning methods. We'll get to that later in course, but check out Itamar's post for a good introduction.
-- I promised to provide some links to time series analysis. The good news is that R's support for time series is very, very good. The [Time Series Analysis](https://cran.r-project.org/web/views/TimeSeries.html) task view on CRAN offers an excellent overview of available packages and their functionality. If you're looking for a more concise introduction, this [community tutorial](https://www.datacamp.com/community/tutorials/time-series-r) on DataCamp is a good place start.
+- I promised to provide some links to time series analysis. The good news is that R's support for time series is very, very good. The [Time Series Analysis](https://cran.r-project.org/web/views/TimeSeries.html) task view on CRAN offers an excellent overview of available packages and their functionality.
