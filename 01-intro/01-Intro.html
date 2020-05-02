@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<html lang="" xml:lang="">
   <head>
     <title>Data Science for Economists</title>
     <meta charset="utf-8" />
     <meta name="author" content="Grant McDermott" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
     <link href="libs/remark-css/default.css" rel="stylesheet" />
     <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
     <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
@@ -112,14 +113,19 @@ school."*
 
 | Component                           | Weight |
 |:-|-:|
-| 5 × homework assignments (15% each) | 75% |
+| 4 × homework assignments (20% each) | 80% |
 | 2 × short presentations (5% each)		| 10% |
-| 1 × OSS contribtion				          | 10% |
-|	In-class participation						  | 5%  |
+| 1 × OSS contribution				        | 10% |
 
 - You can swap out one homework assignment for an (approved) final presentation of your own research.
 - [Short presentations](https://github.com/uo-ec607/presentations) summarize either a key lecture reading, or an (approved) software package/platform.
 - We'll get to OSS contribution later in the course, but this year I'm particularly encouraging contributions to [LOST](lost-stats.github.io/).
+
+--
+
+&lt;/br&gt;
+
+PS &amp;mdash; I'll also award a class participation bonus (2.5%) at my discretion.
 
 ---
 # Lecture outline
@@ -184,6 +190,16 @@ If you had trouble completing any of these steps, please raise your hand.
 
 ---
 
+# Some OS-specific extras
+
+I'll detail further software requirements as and when the need arises. However, to help smooth some software installation issues further down the road, please also do the following (depending on your OS):
+
+- **Windows:** Install [Rtools](https://cran.r-project.org/bin/windows/Rtools/). I also recommend that you install [Chocolately](https://chocolatey.org/).
+- **Mac:** Install [Homebrew](https://brew.sh/). I also recommend that you configure/open your C++ toolchain (see [here](https://github.com/stan-dev/rstan/wiki/Installing-RStan-from-source-on-a-Mac#prerequisite--c-toolchain-and-configuration).)
+- **Linux:** None (you should be good to go).
+
+---
+
 # Checklist
 
 ☑ Do you have the most recent version of R?
@@ -224,7 +240,7 @@ Open up the [shell](http://happygitwithr.com/shell.html#shell).
   ```
   
   ```
-  ## git version 2.24.1
+  ## git version 2.25.0
   ```
 
 ☑ Did you introduce yourself to Git? (Substitute in your details.)
@@ -691,10 +707,10 @@ Simple extension: Use an external package theme.
 
 ```r
 # library(hrbrthemes)
-p2 + theme_modern_rc() + geom_point(aes(size = pop, col = continent), alpha = 0.3)
+p2 + theme_modern_rc() + geom_point(aes(size = pop, col = continent), alpha = 0.2)
 ```
 
-&lt;img src="01-Intro_files/figure-html/modern_rc_theme-1.png" style="display: block; margin: auto;" /&gt;
+&lt;img src="01-Intro_files/figure-html/modern_rc_theme-1.svg" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -740,7 +756,8 @@ Rest assured, you will be using ggplot2 throughout the rest of this course and d
 
 In the meantime, I want you to do some reading and practice on your own. Pick either of the following (or choose among the litany of online resources) and work through their examples:
 - [Chapter 3](https://r4ds.had.co.nz/data-visualisation.html) of *R for Data Science* by Hadley Wickham and Garett Grolemund.
-- [Chapter 3](https://socviz.co/makeplot.html#how-ggplot-works) of *Data Visualization: A Practical Guide* by Kieran Healy. (Or just try a chapter at random.) 
+- [*Data Visualization: A Practical Guide*](https://socviz.co/makeplot.html) by Kieran Healy.
+- [Designing ggplots](https://designing-ggplots.netlify.com) by Malcom Barrett.
 
 ---
 class: inverse, center, middle
@@ -794,6 +811,42 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
     deleted = true;
   });
 })();
+(function() {
+  "use strict"
+  /* Replace <script> tags in slides area to make them executable
+   *
+   * Runs after post-processing of markdown source into slides and replaces only
+   * <script>s on the last slide of continued slides using the .has-continuation
+   * class added by xaringan. Finally, any <script>s in the slides area that
+   * aren't executed are commented out.
+   */
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container:not(.has-continuation) script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+  var scriptsNotExecuted = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container.has-continuation script'
+  );
+  if (!scriptsNotExecuted.length) return;
+  for (var i = 0; i < scriptsNotExecuted.length; i++) {
+    var comment = document.createComment(scriptsNotExecuted[i].outerHTML)
+    scriptsNotExecuted[i].parentElement.replaceChild(comment, scriptsNotExecuted[i])
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
 // adds .remark-code-has-line-highlighted class to <pre> parent elements
 // of code chunks containing highlighted lines with class .remark-code-line-highlighted
 (function(d) {
@@ -811,17 +864,6 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
   }
   preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
 })(document);</script>
-
-<script>
-(function() {
-  var links = document.getElementsByTagName('a');
-  for (var i = 0; i < links.length; i++) {
-    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
-      links[i].target = '_blank';
-    }
-  }
-})();
-</script>
 
 <script>
 slideshow._releaseMath = function(el) {

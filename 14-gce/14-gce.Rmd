@@ -1,10 +1,10 @@
 ---
-title: "Cloud computing with Google Compute Engine"
+title: "Data Science for Economists"
+subtitle: "Lecture 14: Cloud computing with Google Compute Engine"
 author:
   name: Grant R. McDermott
-  affiliation: University of Oregon | EC 607
-  # email: grantmcd@uoregon.edu
-date: Lecture 14  #"`r format(Sys.time(), '%d %B %Y')`"
+  affiliation: University of Oregon | [EC 607](https://github.com/uo-ec607/lectures)
+# date: Lecture 14  #"`r format(Sys.time(), '%d %B %Y')`"
 output: 
   html_document:
     theme: flatly
@@ -36,21 +36,21 @@ This is the first of several lectures on cloud and high-performance computing. T
 
 These next instructions are important, so please read carefully.
 
-1. Sign up for a [12-month ($300 credit) free trial](https://console.cloud.google.com/freetrial) with Google Cloud Platform. This requires an existing Google/Gmail acount.^[If you have multiple Gmail accounts, please pay attention to which one you are using. (E.g. You might have two Gmail accounts, where one is your personal Gmail and the other is linked to your university email.) Needless to say, you'll want to make sure that you use the *same* account when setting up the gloud utility in Step 2. This might all sound obvious, but it has been the primary sticking point during live tutorials, where people encounter a bunch of puzzling authentication errors simply because they aren't using a consistent account.] During the course of sign-up, you should [create a project](https://cloud.google.com/resource-manager/docs/creating-managing-projects) that will be associated with billing. This is purely ceremonial at present — we're using the free trial period after all — but a billable project ID is required before gaining access to the platform.
-2. Download and follow the installation instructions for the Google Cloud SDK command line utility, `gcloud` [here](https://cloud.google.com/sdk/).
+1. Sign up for a [12-month ($300 credit) free trial](https://console.cloud.google.com/freetrial) with Google Cloud Platform (GCP). This requires an existing Google/Gmail account.^[If you have multiple Gmail accounts, please pick one and stick to it consistently whenever you are prompted to authenticate a new GCP service API.] During the course of sign-up, you'll be prompted to enter credit card details for billing purposes. Don't worry, you won't be charged unless/until you actively request continued access to GCP after your free trial ends. But a billable project ID is required before gaining access to the platform.
+2. Download and follow the installation instructions for the [Google Cloud SDK](https://cloud.google.com/sdk/) command line utility, `gcloud`. This is how we'll connect to GCP from our local computers via the shell.
 
 ### R packages 
 
-- **New:** `googleComputeEngineR`, `usethis`
-- **Already used:** `future.apply`, `data.table`, `tictoc`
+- New: **googleComputeEngineR**
+- Already used: **usethis**, **future.apply**, **data.table**, **tictoc**
 
-I don't think it's strictly necessary, but I'm going to install the development version of `googleComputeEngineR`. I'm also going to hold off loading it until I've enabled auto-authentication later in the lecture. Don't worry about that now. Just run the following code chunk to get started.
+I'm going to hold off loading **googleComputeEngineR** until I've enabled auto-authentication later in the lecture. Don't worry about that now. Just run the following code chunk to get started.
 
 ```{r, cache=F, message=F}
 ## Load/install packages
 if (!require("pacman")) install.packages("pacman")
-pacman::p_install_gh("cloudyr/googleComputeEngineR") ## Use the development version of googleComputeEngineR
 pacman::p_load(future.apply, tictoc, data.table, usethis)
+pacman::p_install(googleComputeEngineR, force = FALSE) 
 ```
 
 ## Introduction
@@ -82,7 +82,7 @@ Now, with that background knowledge in mind, GCE delivers high-performance, rapi
 Our goal for today is to set up a VM (or cluster of VMs) on GCE. What's more, we want to install R and RStudio (Server) on these VMs, so that we can interact with them in exactly the same way that we're used to on our own computers. I'm going to show you two approaches:
 
 1. Manually configure GCE with RStudio Server
-2. Automate with `googleComputeEngineR` and friends
+2. Automate with **googleComputeEngineR** and friends
 
 Both approaches have their merits, but I think it's important to start with the manual configuration so that you get a good understanding of what's happening underneath the hood.
 
@@ -169,7 +169,7 @@ grant@my-vm:~$ sudo apt install r-base r-base-dev ## Again, hit "y" when prompte
 
 **Aside:** Those `apt` commands are referring to the [Aptitude](https://wiki.debian.org/Aptitude) package management system. Think of it like of [Homebrew](https://brew.sh/) for Ubuntu (and other Debian Linux distributions).
 
-In addition to the above, a number of important R packages require external Linux libraries that must be installed separately on your VM first. For Ubuntu, we can install these packages with the following commands. Again, hit "y" whenever you are prompted to confirm installation.
+In addition to the above, a number of important R packages require external Linux libraries that must be installed separately on your VM first. (**Note:** You can skip this step if you prefer to install R package binaries on Ubuntu. See [below](#install_r_package_binaries_on_ubuntu).) For Ubuntu, we can install these packages with the following commands. Again, hit "y" whenever you are prompted to confirm installation.
 
 1) For the "[tidyverse](http://tidyverse.org/)" suite of packages:
 ```{bash, eval=F}
@@ -272,44 +272,62 @@ And, remember, if you really want to avoid the command line, then you can always
 
 I use the manual approach to creating VMs on GCE all the time. I feel that this works particularly well for projects that I'm going to be spending a lot of time (e.g. research papers), since it gives me a lot of flexibility and control. Spin up a dedicated VM for the duration of the project, install all of the libraries that I need, and sync the results to my local machine though GitHub (more [here](https://raw.githack.com/uo-ec607/lectures/master/13-gce/13-gce.html#3_sync_with_github_or_other_cloud_service)). Once the VM has been created, you switch it on and off as easily as you would any physical computer.
 
-Yet, for some cases this is overkill. In particular, you may be wondering: "Why don't we just follow our [previous lesson](http://ropenscilabs.github.io/r-docker-tutorial/) and use a Docker image to install RStudio and all of the necessary libraries on our VM?" And the good news is... you can! There are actually several ways to do this, but I am going to focus on [Mark Edmondson's](http://code.markedmondson.me/) very cool [**googleComputeEngineR** package](https://cloudyr.github.io/googleComputeEngineR/index.html).
+Yet, for some cases this is overkill. In particular, you may be wondering: "Why don't we just follow our [previous lesson](http://ropenscilabs.github.io/r-docker-tutorial/) and use a Docker image to install RStudio and all of the necessary libraries on our VM?" And the good news is... you can! There are actually several ways to do this, but I am going to focus on [Mark Edmondson's](http://code.markedmondson.me/) very cool [**googleComputeEngineR**](https://cloudyr.github.io/googleComputeEngineR/index.html) package.
 
-### Setup
+### Once-off setup
 
-I strongly recommend using `googleComputeEngineR` in conjunction with an API service account key. This will greatly reduce authentication overhead and follows exactly the same principles that I covered in the earlier [lecture on APIs](https://raw.githack.com/uo-ec607/lectures/master/07-web-apis/07-web-apis.html). 
-
-You can click through to [this link](https://cloudyr.github.io/googleComputeEngineR/articles/installation-and-authentication.html) for a detailed description of how to access your service account key (including a helpful YouTube video walkthrough). Here is a quick summary, though:
+I strongly recommend using **googleComputeEngineR** in conjunction with an API service account key. This involves some one-off setup pain, but will greatly reduce authentication overhead afterwards. You can click through to [this link](https://cloudyr.github.io/googleComputeEngineR/articles/installation-and-authentication.html) for a detailed description of how to access your service account key (including a helpful YouTube video walkthrough). However, here is a quick summary:
 
 1. Navigate to the [APIs and Services Dashboard](https://console.cloud.google.com/apis/dashboard) of your GCP project.
-2. Click "Credentials" on the left-hand side of your screen. Then select `Create credentials` > `Service Account key`.
-3. This will take you to a new page, where you should choose "Compute engine default service accout" (under `Service account`) and "JSON" (under `Key type`).
-4. Hit `Create` to generate the key, which will then be downloaded to your computer. **Important:** This key will only be generated once, so make sure you download it to a safe location. Feel free to rename the file to something easier to type or recognize if you want.
+2. Click "Credentials" on the left-hand side of your screen. Then select `CREATE CREDENTIALS` > `Service Account`.
+3. This will take you to a new page, where you should fill in the `Service account name` (I'd call it something like "gce", but it doesn't really matter) and, optionally, `Service account description` fields. Then hit `CREATE`.
+4. Select `Owner` as the user role on the next page. Then `CONTINUE`.
+5. Click `+CREATE KEY` on the next page. This will trigger a pop-up window where you should select `JSON` as the key type, followed by `CREATE`. (You can ignore the other stuff on the page about granting users access.) 
+6. The previous step would have generate a JSON file, which you should save to your computer. I recommend renaming it to something recognizable (e.g. `gce-key.json`) and saving it to your home directory for convenient access.
+7. At this point, you are free to click `DONE` on the Create Service Account webpage and minimize your browser.
 
-Now, just like we practiced in the API lecture, we can enable auto-authentication from R by calling these credentials via our `~/.Renviron` file.^[You should already have this file in your home directory based on our previous API authentication examples. If not, you'll need to create it.] Open up this file in your preferred text editor (RStudio is fine) and add the following lines to it. Obviously, adjust the path and names as required. 
+You know the JSON file (i.e. key) that we just downloaded in step 6? Good, because now we need to tell R where to find it so that we can automatically enable credential authentication. We're going to use the same approach that I showed you in our [API lecture](https://raw.githack.com/uo-ec607/lectures/master/07-web-apis/07-web-apis.html#aside:_safely_store_and_use_api_keys_as_environment_variables), which is to store and access sensitive credential information through our `~/.Renviron` file. Open up your .Renviron file by calling
+
+```r
+## Open your .Renviron file
+usethis::edit_r_environ()
+```
+in RStudio. (You can also open and edit it manually in your preferred text editor.) Now, add the following lines to the file. Make sure you adjust the file path and variable strings as required!
 
 ```bash
-GCE_AUTH_FILE="/fullpath-to-your-service-key/filename.json"
+## Change these to your reflect your own path and project locations
+GCE_AUTH_FILE="/full/path/to/your/service/key/filename.json"
 GCE_DEFAULT_PROJECT_ID="your-project-id-here"
-GCE_DEFAULT_ZONE="your-preferred-zone-here" ## E.g. us-west1-a
+GCE_DEFAULT_ZONE="your-preferred-zone-here"
+```
+Save your updated .Renviron file. Then refresh your system: 
+
+```r
+## Refresh your .Renviron file for the current session.
+readRenviron("~/.Renviron") 
 ```
 
-Now, auto-authentication will automatically be enabled when you load `googleComputeEngineR` in R.
+And that's the once-off setup pain complete! 
+
+### Load package and test
+
+Assuming everything went to plan during the initial setup above, Google Cloud authentication from R should automatically be enabled whenever you load the **googleComputeEngineR** package. That is, when you run
 
 ```{r, cache=F, message=F}
 library(googleComputeEngineR)
 ```
+then you should see something like the following:
 ```
 ## Setting scopes to https://www.googleapis.com/auth/cloud-platform
-## Successfully auto-authenticated via /fullpath-to-your-service-key/filename.json
+## Successfully auto-authenticated via /full/path/to/your/service/key/filename.json
 ## Set default project ID to 'your-project-id-here'
 ## Set default zone to 'your-preferred-zone-here'
 ```
-
-Nice. With that taken care of, let's look at some examples to see how easy `googleComputeEngineR` is to work with.
+Now that the hard installation part is over, let's see how easy **googleComputeEngineR** is to work with.
 
 ### Single VM
 
-The workhorse `googleComputeEngineR` function to remember is **`gce_vm()`**. This will fetch (i.e. start) an instance if it already exists, and create a new instance from scratch if it doesn't. Let's practice an example of the latter, since it will demonstrate the package's integration of Docker images via the [Rocker Project](https://www.rocker-project.org/).^[You can test the former by running `my_vm <- gce_vm("my-vm")` in your R console. You can also get a list of all existing instances by running `gce_list_instances()`.]
+The workhorse **googleComputeEngineR** function to remember is `gce_vm()`. This will fetch (i.e. start) an instance if it already exists, and create a new instance from scratch if it doesn't. Let's practice an example of the latter, since it will demonstrate the package's integration of Docker images via the [Rocker Project](https://www.rocker-project.org/).^[You can test the former by running `my_vm <- gce_vm("my-vm")` in your R console. You can also get a list of all existing instances by running `gce_list_instances()`.]
 
 The below code chunk should hopefully be pretty self-explantory. Like we saw earlier, we can name our VM pretty much whatever we want and can choose from a list of predefined machine types. The key point that I want to draw your attention to here is the fact that we're using the `template = "rstudio"` option to automatically install [this Docker image](https://hub.docker.com/r/rocker/rstudio) on our VM. This means that the initial spin-up will take slightly longer (since the Docker image needs to be downloaded and installed), but RStudio Server will immediately be ready to go once that's done. You could also add your own Docker images to the `gve_vm()` call so that your entire environment is ready to go when the VM is instantiated (see [here](https://cloudyr.github.io/googleComputeEngineR/articles/docker.html). Finally, note that the `gce_vm` function provides convenient options for specifying a username and password that can be used to log into this RStudio instance.
 
@@ -330,7 +348,7 @@ vm <-
 vm
 ```
 
-And that's really all you need. Just to prove that it worked, here's a screenshot of "Oprah" running RStudio Server on this VM.
+And that's really all you need. To log in, simply click on the external IP address (you do <u>not</u> need to add the 8787 port this time). Just to prove that it worked, here's a screenshot of "Oprah" running RStudio Server on this VM.
 
 ![](pics/oprah-loggedin.png)
 
@@ -343,6 +361,8 @@ gce_vm_delete(vm) ## Delete the VM (optional)
 ```
 
 ### Cluster of VMs
+
+<i>**Note:** This section isn't working for Windows users at present. Follow along [here](https://github.com/cloudyr/googleComputeEngineR/issues/137) for a longer discussion of the problem (related to SSH keys) and, hopefully, a solution at some point.</i>
 
 At the risk of gross simplification, there are two approaches to "brute forcing" your way through a computationally-intensive problem.^[Of course, you can also combine a cluster of very power machines to get a *really* powerful system. That's what supercomputing services like the University of Oregon's [Talapas cluster](https://hpcf.uoregon.edu/content/talapas) provide, which is the subject of our next lecture.]
 
@@ -384,7 +404,7 @@ vms <-
 
 And that's all it takes. We are ready to use our remote cluster. For this simple example, I'm going to loop `slow_func()` over the vector `1:15`. As a reference point, recall that the loop would take (15*5=) **75 seconds** to run sequentially.
 
-To run the parallelised version on our simple 3-CPU cluster, I'm going to use the amazing [future.apply package](https://github.com/HenrikBengtsson/future.apply) that we covered in the [lecture on parallel programming](https://raw.githack.com/uo-ec607/lectures/master/12-parallel/12-parallel.html). As you can see, all I need to do is specify `plan(cluster)` and provide the location of the workers (here: the `vms` cluster that we just created). Everything else stays *exactly* the same, as if we were running the code on our local computer. It Just Works.<sup>TM</sup>
+To run the parallelised version on our simple 3-CPU cluster, I'm going to use the amazing [**future.apply**](https://github.com/HenrikBengtsson/future.apply) package that we covered in the [lecture on parallel programming](https://raw.githack.com/uo-ec607/lectures/master/12-parallel/12-parallel.html). As you can see, all I need to do is specify `plan(cluster)` and provide the location of the workers (here: the `vms` cluster that we just created). Everything else stays *exactly* the same, as if we were running the code on our local computer. It Just Works.<sup>TM</sup>
 
 ```{r future_cluster, dependson=vms}
 # library(tictoc) ## For timing. Already loaded.
@@ -490,7 +510,7 @@ Normally, I would remind you to shut down your VM instances now. But first, let'
 
 #### One final example
 
-The final example that I'm going to show you is a slight adaptation of the nested cluster that we just covered.^[Indeed, we're going to be using the same three VMs. These should still be running in the background, unless you've taken a long time to get to this next section. Just spin them up again if you run into problems.] This time we're going to install and use an additional R package on our remote VMs that didn't come pre-installed on the "r-parallel" Docker image. (The package in question is going to be [data.table](http://rdatatable.gitlab.io/data.table/), but that's not really the point of the exercise.) I wanted to cover this kind of scenario because a) it's very likely that you'll want to do something similar if you start using remote clusters regularly, and b) the commands for doing so aren't obvious if you're not used to R scripting on Docker containers. The good news is that it's pretty easy once you've seen an example and that everything can be done through `plan()`. Let's proceed.
+The final example that I'm going to show you is a slight adaptation of the nested cluster that we just covered.^[Indeed, we're going to be using the same three VMs. These should still be running in the background, unless you've taken a long time to get to this next section. Just spin them up again if you run into problems.] This time we're going to install and use an additional R package on our remote VMs that didn't come pre-installed on the "r-parallel" Docker image. (The package in question is going to be [**data.table**](http://rdatatable.gitlab.io/data.table/), but that's not really the point of the exercise.) I wanted to cover this kind of scenario because a) it's very likely that you'll want to do something similar if you start using remote clusters regularly, and b) the commands for doing so aren't obvious if you're not used to R scripting on Docker containers. The good news is that it's pretty easy once you've seen an example and that everything can be done through `plan()`. Let's proceed.
 
 The [Rscript](https://linux.die.net/man/1/rscript) shell command is how we can install additional R packages on a remote VM (or cluster) that is busy running a Docker container. However, we first need to tell Docker to launch Rscript inside the container in question. That's what the `rscript = c(...)` line below is doing. Next we feed it the actual Rscript argument(s) to be run. In this case, it's going to be `Rscript -e install.packages(PACKAGE)`. Again, this looks a little abstruce here because it has to go through the `rscript_args = c(...)` argument, but hopefully you get the idea.
 
@@ -514,9 +534,9 @@ plan(list(
 ))
 ```
 
-(Note: I've hidden the output from the above code chunk, because takes up quite of vertical space with all of the installation messages, etc. You should see messages detailing data.table's installation progress across each of your VMs if you run this code on your own computer.)
+(Note: I've hidden the output from the above code chunk, because takes up quite of vertical space with all of the installation messages, etc. You should see messages detailing **data.table**'s installation progress across each of your VMs if you run this code on your own computer.)
 
-Let's prove to ourselves that the installation of `data.table` worked by running a very slightly modified version of our earlier code. This time we'll use `data.table::rbindList()` to coerce the resulting list objects from each `future_lapply()` call into a data table. Note that we'll need to do this twice: once for our inner loop(s) and once for the outer loop.
+Let's prove to ourselves that the installation of **data.table** worked by running a very slightly modified version of our earlier code. This time we'll use `data.table::rbindList()` to coerce the resulting list objects from each `future_lapply()` call into a data table. Note that we'll need to do this twice: once for our inner loop(s) and once for the outer loop.
 
 ```{r future_nested_cluster_DT, dependson=plan_nested_DT, dependson=chunk_func}
 ## Same as earlier, but this time binding the results into a data.table with
@@ -551,11 +571,25 @@ gce_vm_delete(vms_nested)
 
 ### Other topics
 
-The `googleComputeEngineR` package offers a lot more functionality than I can cover here. However, I wanted to briefly mention the fact that GCE offers GPU instances that are production-ready for training hardcore deep learning models. In my view, this is one of the most exciting developments of cloud-based computation services, as it puts the infrastructure necessary for advanced machine learning in the hands of just about everyone. See Mark's [introductory GPU tutorial](https://cloudyr.github.io/googleComputeEngineR/articles/gpu.html) on the `googleComputeEngineR` website. **Note:** These GPU instances are not available during the GCP free trial period, although users can always upgrade their account if they want.
+The **googleComputeEngineR** package offers a lot more functionality than I can cover here. However, I wanted to briefly mention the fact that GCE offers GPU instances that are production-ready for training hardcore deep learning models. In my view, this is one of the most exciting developments of cloud-based computation services, as it puts the infrastructure necessary for advanced machine learning in the hands of just about everyone. See Mark's [introductory GPU tutorial](https://cloudyr.github.io/googleComputeEngineR/articles/gpu.html) on the **googleComputeEngineR** website. *Note:* These GPU instances are not available during the GCP free trial period, although users can always upgrade their account if they want.
 
 ## BONUS: Getting the most out of your GCE + RStudio Server setup
 
 You have already completed all of the steps that you'll need for high-performance computing in the cloud. Any VM that you create on GCE using the above methods will be ready to go with RStudio Server whenever you want it. However, there are still a few more tweaks and tips that we can use to really improve our user experience and reduce complications when interacting with these VMs from our local computers. The rest of this tutorial covers my main tips and recommendations.
+
+### Keep your system up to date
+
+Remember to keep your VM up to date, just like you would a normal computer. Run the following two commands regularly:
+```{bash, eval=F}
+grant@my-vm:~$ sudo apt update
+grant@my-vm:~$ sudo apt upgrade
+```
+You can also update the `gcloud` utility components on your local computer (i.e. not your VM) with the following command:
+```{bash, eval=F, prompt=T}
+gcloud components update
+```
+
+
 
 ### Transfer and sync files between your VM and your local computer
 
@@ -587,6 +621,45 @@ While I haven't tried it myself, you should also be able to install [Box](http:/
 > **Tip:** Remember that your VM lives on a server and doesn't have the usual graphical interface — including installation utilities — of a normal desktop. You'll thus need to follow command line installation instructions for these programs. Make sure you scroll down to the relevant sections of the links that I have provided above.
 
 Last, but not least, Google themselves encourage data synchronisation on GCE VMs using another product within their Cloud Platform, i.e. [Google Storage](https://cloud.google.com/storage/). This is especially useful for really big data files and folders, but beyond the scope of this lecture. (If you're interested in learning more, see [here](https://cloud.google.com/solutions/filers-on-compute-engine) and [here](https://cloud.google.com/compute/docs/disks/gcs-buckets).)
+
+### Install R package binaries on Ubuntu
+
+Installing R packages on a Linux system can come as a bit of shock for first-time users. It takes much longer than Mac or Windows because everything has to compiled from source. The good news is that pre-compiled binaries *are* available on Ubuntu thanks to Mark Rutter. This means we can greatly speed up package installation and reduce other complications related to external dependencies. More information [here](https://twitter.com/grant_mcdermott/status/1174059096900718592), but the short version is that you can open up your terminal and try out the following.
+
+```sh
+#  Add the PPA
+grant@my-vm:~$ sudo add-apt-repository -y "ppa:marutter/rrutter3.5"
+grant@my-vm:~$ sudo add-apt-repository -y "ppa:marutter/c2d4u3.5"
+grant@my-vm:~$ sudo apt update
+
+# To list all of the available binaries:
+grant@my-vm:~$ apt-cache search r-cran- | sort | less
+
+# Or, to see if a specific package is available:
+grant@my-vm:~$ apt-cache search r-cran | grep “tidy”
+
+# Install your package(s) of choice, e.g.:
+grant@my-vm:~$ sudo apt install -y r-cran-tidyverse r-cran-rstan
+```
+
+Note that this approach requires you to install packages from your terminal using Aptitude (i.e. Ubuntu's built-in package manager that I mentioned earlier in the lecture). So, not the traditional `install.packages()` command that you're used to from within R. If you really prefer the latter approach, two other ways to greatly reduce R package (re)installation and compilation times on Linux are 1) make sure packages are installed [in parallel](https://www.jumpingrivers.com/blog/speeding-up-package-installation/) by adding `options(Ncpus=parallel::detectCores())` to your `~./Rprofile` file, and/or 2) caching your packages using [ccache](http://dirk.eddelbuettel.com/blog/2017/11/27/).
+
+### Install the Intel Math Kernel Library (MKL) or OpenBLAS/LAPACK
+
+As we discussed in the previous lecture on [parallel programming](https://raw.githack.com/uo-ec607/lectures/master/12-parallel/12-parallel.html), R ships with its own BLAS/LAPACK libraries by default. While this default works well enough, you can get *significant* speedups by switching to more optimized libraries such as the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl) or [OpenBLAS](https://www.openblas.net/). The former is slightly faster according to the benchmark tests that I've seen, but was historically harder to install. However, thanks to [Dirk Eddelbuettel](https://github.com/eddelbuettel/mkl4deb), this is now very easily done:
+
+```{bash, eval=F}
+grant@my-vm:~$ git clone https://github.com/eddelbuettel/mkl4deb.git
+grant@my-vm:~$ sudo bash mkl4deb/script.sh
+```
+
+Wait for the script to finish running. Once it's done, your R session should automatically be configured to use MKL by default. You can check yourself by opening up R and checking the `sessionInfo()` output, which should return something like:
+```
+Matrix products: default
+BLAS/LAPACK: /opt/intel/compilers_and_libraries_2018.2.199/linux/mkl/lib/intel64_lin/libmkl_rt.so
+```
+(Note: Dirk's script only works for Ubuntu and other Debian-based Linux distros. If you decided to spin up a different OS for your VM than we did in this tutorial, then you are probably better off [installing OpenBLAS](https://github.com/xianyi/OpenBLAS/wiki/Precompiled-installation-packages).)
+
 
 ### Share files and libraries between multiple users on the same VM
 
@@ -630,7 +703,7 @@ priscilla@my-vm:~$ exit
 
 ##### Share R libraries (packages) across users
 
-Sharing R libraries across users is less critical than being able to share files. However, it's still annoying having to install, say, `ggplot2` when your colleague has already installed it under her user account. Luckily, the solution to this annoyance very closely mimics the solution to file sharing that we've just seen above: We're going to set a default system-wide R library path and give all of our users access to that library via a group. For convenience I'm just going to contine with the "projectgrp" group that we created above. However, you could also create a new group (say, "rusers"), add individual users to it, and proceed that way if you wanted to.
+Sharing R libraries across users is less critical than being able to share files. However, it's still annoying having to install, say, the **tidyverse** when your colleague has already installed it under her user account. Luckily, the solution to this annoyance very closely mimics the solution to file sharing that we've just seen above: We're going to set a default system-wide R library path and give all of our users access to that library via a group. For convenience I'm just going to contine with the "projectgrp" group that we created above. However, you could also create a new group (say, "rusers"), add individual users to it, and proceed that way if you wanted to.
 
 The first thing to do is determine where your exisiting system-wide R library is located. Open up your R console and type (without the ">" prompt):
 ```
@@ -651,34 +724,6 @@ elvis@my-vm:~$ sudo echo 'export PATH="R_LIBS_USER=/usr/lib/R/library"' >> ~/.Re
 The R packages that Elvis installs should now be immediately available to Priscilla and vice versa.
 
 > **Tip:** If you've already installed some packages in a local (i.e. this-user-only) library path before creating the system-wide setup, you can just move them across with the ['mv'](https://linuxjourney.com/lesson/move-mv-command) command. Something like the following should work, but you'll need to check the appropriate paths yourself: `elvis@my-vm:~$ sudo mv "/home/elvis/R/x86_64-pc-linux-gnu-library/3.5/*" /usr/lib/R/library`.
-
-### Install the Intel Math Kernel Library (MKL) or OpenBLAS/LAPACK
-
-As we discussed in the previous lecture on [parallel programming](https://raw.githack.com/uo-ec607/lectures/master/12-parallel/12-parallel.html), R ships with its own BLAS/LAPACK libraries by default. While this default works well enough, you can get *significant* speedups by switching to more optimized libraries such as the [Intel Math Kernel Library (MKL)](https://software.intel.com/en-us/mkl) or [OpenBLAS](https://www.openblas.net/). The former is slightly faster according to the benchmark tests that I've seen, but was historically harder to install. However, thanks to [Dirk Eddelbuettel](https://github.com/eddelbuettel/mkl4deb), this is now very easily done:
-
-```{bash, eval=F}
-grant@my-vm:~$ git clone https://github.com/eddelbuettel/mkl4deb.git
-grant@my-vm:~$ sudo bash mkl4deb/script.sh
-```
-
-Wait for the script to finish running. Once it's done, your R session should automatically be configured to use MKL by default. You can check yourself by opening up R and checking the `sessionInfo()` output, which should return something like:
-```
-Matrix products: default
-BLAS/LAPACK: /opt/intel/compilers_and_libraries_2018.2.199/linux/mkl/lib/intel64_lin/libmkl_rt.so
-```
-(Note: Dirk's script only works for Ubuntu and other Debian-based Linux distros. If you decided to spin up a different OS for your VM than we did in this tutorial, then you are probably better off [installing OpenBLAS](https://github.com/xianyi/OpenBLAS/wiki/Precompiled-installation-packages).)
-
-
-### Other tips
-Remember to keep your VM system up to date (just like you would a normal computer).
-```{bash, eval=F}
-grant@my-vm:~$ sudo apt update
-grant@my-vm:~$ sudo apt upgrade
-```
-You can also update the `gcloud` utility components on your local computer (i.e. not your VM) with the following command:
-```{bash, eval=F, prompt=T}
-gcloud components update
-```
 
 
 ## Further resources

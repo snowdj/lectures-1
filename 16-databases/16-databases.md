@@ -1,10 +1,10 @@
 ---
-title: "Databases"
+title: "Data Science for Economists"
+subtitle: "Lecture 16: Databases"
 author:
   name: Grant R. McDermott
-  affiliation: University of Oregon | EC 607
-  # email: grantmcd@uoregon.edu
-date: Lecture 16  #"30 June 2019"
+  affiliation: University of Oregon | [EC 607](https://github.com/uo-ec607/lectures)
+# date: Lecture 16  #"01 March 2020"
 output: 
   html_document:
     theme: flatly
@@ -26,8 +26,8 @@ You should already have done this for the lecture on Google Compute Engine. See 
 
 ### R packages 
 
-- **New:** `dbplyr`, `DBI`, `RSQLite`,`bigrquery`, `glue`
-- **Already used:** `tidyverse`, `hrbrthemes`, `nycflights13`
+- New: **dbplyr**, **DBI**, **RSQLite**,**bigrquery**, **glue**
+- Already used: **tidyverse**, **hrbrthemes**, **nycflights13**
 
 As per usual, the code chunk below will install (if necessary) and load all of these packages for you. I'm also going to set my preferred ggplot2 theme, but as you wish.
 
@@ -53,28 +53,28 @@ At this point, you might be tempted to think of a database as the "thing" that y
 
 ## Databases and the tidyverse
 
-Virtually relational database in existence makes use of [**SQL**](https://en.wikipedia.org/wiki/SQL) (**S**tructured **Q**uery **L**anguage ).  SQL is an extremely powerful tool and has become something of prerequisite for many data science jobs. ([Exhibit A](https://raw.githack.com/uo-ec607/lectures/master/01-intro/01-Intro.html#21).) However, it is also an archaic language that is much less intuitive than the tidyverse tools that we have using thus far in the course. We'll see several examples of this shortly, but first the good news: You already have all the programming skills you need to start working with databases. This is because the tidyverse --- through `dplyr` --- allows for direct communication with databases from your local R environment.
+Virtually relational database in existence makes use of [**SQL**](https://en.wikipedia.org/wiki/SQL) (**S**tructured **Q**uery **L**anguage ).  SQL is an extremely powerful tool and has become something of prerequisite for many data science jobs. ([Exhibit A](https://raw.githack.com/uo-ec607/lectures/master/01-intro/01-Intro.html#21).) However, it is also an archaic language that is much less intuitive than the tidyverse tools that we have using thus far in the course. We'll see several examples of this shortly, but first the good news: You already have all the programming skills you need to start working with databases. This is because the tidyverse --- through **dplyr** --- allows for direct communication with databases from your local R environment.
 
 What does this mean? 
 
-Simply that you can interact with the vast datasets that are stored in relational databases using the *same* tidyverse verbs and syntax that we already know. All of this is possible thanks to the [**dbplyr** package](https://dbplyr.tidyverse.org/), which provides a database backend to `dplyr`. What's happening even further behind the scenes is that, upon installation, `dbplyr` suggests the [**DBI** package](https://db.rstudio.com/dbi) as a dependency. `DBI` provides a common interface that allows `dplyr` to work with many different databases using exactly the same code. You don't even need to leave your RStudio session or learn SQL!
+Simply that you can interact with the vast datasets that are stored in relational databases using the *same* tidyverse verbs and syntax that we already know. All of this is possible thanks to the [**dbplyr**](https://dbplyr.tidyverse.org/) package, which provides a database backend to `dplyr`. What's happening even further behind the scenes is that, upon installation, **dbplyr** suggests the [**DBI**](https://db.rstudio.com/dbi) package as a dependency. **DBI** provides a common interface that allows **dplyr** to work with many different databases using exactly the same code. You don't even need to leave your RStudio session or learn SQL!
 
-> **Aside:** Okay, you will probably want to learn SQL eventually. Luckily, `dplyr` and `dbplyr` come with several features that can really help to speed up the learning and translation process. We'll get to these later in the lecture.
+> **Aside:** Okay, you will probably want to learn SQL eventually. Luckily, **dplyr** and **dbplyr** come with several features that can really help to speed up the learning and translation process. We'll get to these later in the lecture.
 
-While `DBI` is automatically bundled with `dbplyr`, you'll need to install a specific backend package for the type of database that you want to connect to. You can see a list of commonly used backends [here](https://db.rstudio.com/dplyr/#getting-started). For today, however, we'll focus on two: 
+While **DBI** is automatically bundled with **dbplyr**, you'll need to install a specific backend package for the type of database that you want to connect to. You can see a list of commonly used backends [here](https://db.rstudio.com/dplyr/#getting-started). For today, however, we'll focus on two: 
   
-1. `RSQLite` embeds a SQLite database.
-2. `bigrquery` connects to Google BigQuery.
+1. **RSQLite** embeds a SQLite database.
+2. **bigrquery** connects to Google BigQuery.
 
 The former is a lightweight SQL database engine that can exist on our local computers. It thus provides the simplest way of demonstrating the key concepts of this section without the additional overhead required by the other database types. (No need to connect to a remote server, for starters.) The latter is the one that I use most frequently in my own work and also requires minimal overhead, seeing as we already set up a Google Cloud account in the previous lecture.
 
 ## Getting started: SQLite
 
-This next section is largely inspired by Hadley Wickham's excellent tutorial on [Databases using dplyr](https://db.rstudio.com/dplyr). Our goal is to create a makeshift database on our local computers using SQLite. We'll use this to execute some practice queries and illustrate some general principles about interacting with databases.
+This next section is inspired by RStudio's excellent [*Databases using dplyr*](https://db.rstudio.com/dplyr) tutorial. Our goal is to create a makeshift database on our local computers using SQLite. We'll use this to execute some practice queries and illustrate some general principles about interacting with databases.
 
 ### Connecting to a database
 
-Start by opening an (empty) database connection via the `DBI::dbConnect()` function, which we'll call `con`. Note that we are calling the `RSQLite` package in the background for the SQLite backend and telling R that this is a local connection that exists in memory.
+Start by opening an (empty) database connection via the `DBI::dbConnect()` function, which we'll call `con`. Note that we are calling the **RSQLite** package in the background for the SQLite backend and telling R that this is a local connection that exists in memory.
 
 
 
@@ -84,9 +84,9 @@ Start by opening an (empty) database connection via the `DBI::dbConnect()` funct
 con <- dbConnect(RSQLite::SQLite(), path = ":memory:")
 ```
 
-As Hadley [describes](https://db.rstudio.com/dplyr/#connecting-to-the-database), the arguments to DBI::dbConnect() vary from database to database. However, the first argument is always the database backend, i.e. `RSQLite::SQLite()` in this case since we're using (R)SQLite. Again, while this differs depending on the database type that you're connecting with, SQLite only needs one other argument: the `path` to the database. Here we use the special string, ":memory:", which causes SQLite to make a temporary in-memory database. We'll explore more complicated connections later on that will involve things like password prompts for remote databases.
+The arguments to `DBI::dbConnect()` vary from database to database. However, the first argument is always the database backend, i.e. `RSQLite::SQLite()` in this case since we're using (R)SQLite. Again, while this differs depending on the database type that you're connecting with, SQLite only needs one other argument: the `path` to the database. Here we use the special string, ":memory:", which causes SQLite to make a temporary in-memory database. We'll explore more complicated connections later on that will involve things like password prompts for remote databases.
 
-Our makeshift database, `con`, currently has no data in it. For this example, we'll use copy across the `nycflights13::flights` dataset using the `dplyr::copy_to()` convenience function. This just provides a simple way of getting data into our makeshift database, which can be used for demonstration purposes. Note that we are specifying the table name ("flights") that will exist within this database. You can also see that we're passing a list of indexes to the `copy_to()` function. Indexes enable efficient database performance, although you don't need to worry too much about that. These will be set by the database host platform or maintainer in normal applications.
+Our makeshift database connection `con` is currently empty. So let's copy across the *flights* dataset that comes bundled together with the **nycflights13** package. There are a couple of ways to do this, but here I'll use the `dplyr::copy_to()` convenience function. Note that we are specifying the table name ("flights") that will exist within this database. You can also see that we're passing a list of indexes to the `copy_to()` function. Indexes enable efficient database performance, although you don't need to worry too much about that right now. These will be set by the database host platform or maintainer in normal applications.
 
 
 ```r
@@ -119,30 +119,29 @@ flights_db
 
 ```
 ## # Source:   table<flights> [?? x 19]
-## # Database: sqlite 3.22.0 []
-##     year month   day dep_time sched_dep_time dep_delay arr_time
-##    <int> <int> <int>    <int>          <int>     <dbl>    <int>
-##  1  2013     1     1      517            515         2      830
-##  2  2013     1     1      533            529         4      850
-##  3  2013     1     1      542            540         2      923
-##  4  2013     1     1      544            545        -1     1004
-##  5  2013     1     1      554            600        -6      812
-##  6  2013     1     1      554            558        -4      740
-##  7  2013     1     1      555            600        -5      913
-##  8  2013     1     1      557            600        -3      709
-##  9  2013     1     1      557            600        -3      838
-## 10  2013     1     1      558            600        -2      753
-## # … with more rows, and 12 more variables: sched_arr_time <int>,
-## #   arr_delay <dbl>, carrier <chr>, flight <int>, tailnum <chr>,
-## #   origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
-## #   minute <dbl>, time_hour <dbl>
+## # Database: sqlite 3.30.1 []
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # … with more rows, and 11 more variables: arr_delay <dbl>, carrier <chr>,
+## #   flight <int>, tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>,
+## #   distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dbl>
 ```
 
 It worked! Everything looks pretty good, although you may notice something slightly strange about the output. We'll get to that in a minute.
 
 ### Generating queries
 
-Again, one of the best things about `dplyr` is that it automatically translates tidyverse-style code into SQL for you. In fact, many of the key `dplyr` verbs are based on SQL equivalents.  With that in mind, let's try out a few queries using the typical `dplyr` syntax that we already know.
+Again, one of the best things about **dplyr** is that it automatically translates tidyverse-style code into SQL for you. In fact, many of the key **dplyr** verbs are based on SQL equivalents.  With that in mind, let's try out a few queries using the typical **dplyr** syntax that we already know.
 
 
 ```r
@@ -152,7 +151,7 @@ flights_db %>% select(year:day, dep_delay, arr_delay)
 
 ```
 ## # Source:   lazy query [?? x 5]
-## # Database: sqlite 3.22.0 []
+## # Database: sqlite 3.30.1 []
 ##     year month   day dep_delay arr_delay
 ##    <int> <int> <int>     <dbl>     <dbl>
 ##  1  2013     1     1         2        11
@@ -175,23 +174,22 @@ flights_db %>% filter(dep_delay > 240)
 
 ```
 ## # Source:   lazy query [?? x 19]
-## # Database: sqlite 3.22.0 []
-##     year month   day dep_time sched_dep_time dep_delay arr_time
-##    <int> <int> <int>    <int>          <int>     <dbl>    <int>
-##  1  2013     1     1      848           1835       853     1001
-##  2  2013     1     1     1815           1325       290     2120
-##  3  2013     1     1     1842           1422       260     1958
-##  4  2013     1     1     2115           1700       255     2330
-##  5  2013     1     1     2205           1720       285       46
-##  6  2013     1     1     2343           1724       379      314
-##  7  2013     1     2     1332            904       268     1616
-##  8  2013     1     2     1412            838       334     1710
-##  9  2013     1     2     1607           1030       337     2003
-## 10  2013     1     2     2131           1512       379     2340
-## # … with more rows, and 12 more variables: sched_arr_time <int>,
-## #   arr_delay <dbl>, carrier <chr>, flight <int>, tailnum <chr>,
-## #   origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
-## #   minute <dbl>, time_hour <dbl>
+## # Database: sqlite 3.30.1 []
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+##  1  2013     1     1      848           1835       853     1001           1950
+##  2  2013     1     1     1815           1325       290     2120           1542
+##  3  2013     1     1     1842           1422       260     1958           1535
+##  4  2013     1     1     2115           1700       255     2330           1920
+##  5  2013     1     1     2205           1720       285       46           2040
+##  6  2013     1     1     2343           1724       379      314           1938
+##  7  2013     1     2     1332            904       268     1616           1128
+##  8  2013     1     2     1412            838       334     1710           1147
+##  9  2013     1     2     1607           1030       337     2003           1355
+## 10  2013     1     2     2131           1512       379     2340           1741
+## # … with more rows, and 11 more variables: arr_delay <dbl>, carrier <chr>,
+## #   flight <int>, tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>,
+## #   distance <dbl>, hour <dbl>, minute <dbl>, time_hour <dbl>
 ```
 
 ```r
@@ -203,12 +201,13 @@ flights_db %>%
 
 ```
 ## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
+## Use `mean(x, na.rm = TRUE)` to silence this warning
+## This warning is displayed only once per session.
 ```
 
 ```
 ## # Source:   lazy query [?? x 2]
-## # Database: sqlite 3.22.0 []
+## # Database: sqlite 3.30.1 []
 ##    dest  delay
 ##    <chr> <dbl>
 ##  1 ABQ   2006.
@@ -228,7 +227,7 @@ Again, everything seems to be working great with the minor exception being that 
 
 ### Laziness as a virtue
 
-The *modus operandi* of `dplyr` is to be as lazy as possible. What this means in practice is that your R code is translated into SQL and executed in the database, not in R. This is a good thing, since:
+The *modus operandi* of **dplyr** is to be as lazy as possible. What this means in practice is that your R code is translated into SQL and executed in the database, not in R. This is a good thing, since:
 
 - It never pulls data into R unless you explicitly ask for it.
 - It delays doing any work until the last possible moment: it collects together everything you want to do and then sends it to the database in one step.
@@ -249,7 +248,7 @@ tailnum_delay_db <-
   filter(n > 100)
 ```
 
-Surprisingly, this sequence of operations never touches the database.^[It's a little hard to tell from this simple example, but an additional clue is that fact that this sequence of commands would execute instaneously even it it was applied on a massive remote database.] It’s not until you actually ask for the data (say, by printing `tailnum_delay_db`) that `dplyr` generates the SQL and requests the results from the database. Even then it tries to do as little work as possible and only pulls down a few rows.
+Surprisingly, this sequence of operations never touches the database.^[It's a little hard to tell from this simple example, but an additional clue is that fact that this sequence of commands would execute instaneously even it it was applied on a massive remote database.] It’s not until you actually ask for the data (say, by printing `tailnum_delay_db`) that **dplyr** generates the SQL and requests the results from the database. Even then it tries to do as little work as possible and only pulls down a few rows.
 
 
 ```r
@@ -257,16 +256,8 @@ tailnum_delay_db
 ```
 
 ```
-## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
-
-## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
-```
-
-```
 ## # Source:     lazy query [?? x 4]
-## # Database:   sqlite 3.22.0 []
+## # Database:   sqlite 3.30.1 []
 ## # Ordered by: desc(mean_arr_delay)
 ##    tailnum mean_dep_delay mean_arr_delay     n
 ##    <chr>            <dbl>          <dbl> <int>
@@ -293,17 +284,6 @@ Typically, you’ll iterate a few times before you figure out what data you need
 tailnum_delay <- 
   tailnum_delay_db %>% 
   collect()
-```
-
-```
-## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
-
-## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
-```
-
-```r
 tailnum_delay
 ```
 
@@ -341,21 +321,17 @@ tailnum_delay %>%
 
 ![](16-databases_files/figure-html/tailnum_delay_ggplot-1.png)<!-- -->
 
-### Using SQL directly
+Assuming that we're finished querying our SQLite database at this point, we'd normally disconnect from it by calling `DBI::dbDisconnect(con)`. However, I want to keep the connection open a bit longer, so that I can demonstrate how to execute raw (i.e. untranslated) SQL queries on a database from within R.
 
-Behind the scenes, `dplyr` is translating your R code into SQL. You can use the **`show_query()`** function to display the SQL code that was used to generate a queried table.
+## Using SQL directly in R
+
+### Translate with dplyr::show_query()
+
+Behind the scenes, **dplyr** is translating your R code into SQL. You can use the **`show_query()`** function to display the SQL code that was used to generate a queried table.
 
 
 ```r
 tailnum_delay_db %>% show_query()
-```
-
-```
-## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
-
-## Warning: Missing values are always removed in SQL.
-## Use `AVG(x, na.rm = TRUE)` to silence this warning
 ```
 
 ```
@@ -369,9 +345,14 @@ tailnum_delay_db %>% show_query()
 ## WHERE (`n` > 100.0)
 ```
 
-Note that the SQL call is much less appealing/intuitive our piped `dplyr` code. This results partly from the way that `dplyr` translated the code (e.g. those repeated `SELECT` commands at the top of the SQL string are redundant). However, it also reflects the simple fact that SQL is not an elegant language to work with. In particular, SQL imposes a **lexical** order of operations that doesn't necessarily preserve the **logical** order of operations.^[Which stands in direct contrast to our piped `dplyr` code, i.e. "take this object, do this, then do this", etc. I even made a meme about it for you: https://www.captiongenerator.com/1325222/Dimitri-doesnt-need-SQL] This lexical ordering is also known as "order of execution" and is strict in the sense that (nearly) every SQL query must follow the same hierarchy of commands. I don't want to go through this all now, but I did want to make you aware of it. While it can take a while to wrap your head around, the good news is that it is certainly learnable. ([Here](https://www.eversql.com/sql-order-of-operations-sql-query-order-of-execution/) and [here](https://blog.jooq.org/2016/12/09/a-beginners-guide-to-the-true-order-of-sql-operations/) are great places to start.) The even better news is that you may not even need SQL given how well the `dplyr` translation works. 
+Note that the SQL call is much less appealing/intuitive our piped **dplyr** code. In part, this is an artefact of the translation steps involved. The **dplyr** translation engine includes various safeguards that are designed to ensure that the resulting SQL code works. But this comes at the expense of code concision (e.g. those repeated `SELECT` commands at the top of the SQL string are redundant). However, it also reflects the simple fact that SQL is not an elegant language to work with. In particular, SQL imposes a *lexical* order of operations that doesn't necessarily preserve the *logical* order of operations.^[Which stands in direct contrast to our piped **dplyr** code, i.e. "take this object, do this, then do this", etc. I even made a meme about it for you: https://www.captiongenerator.com/1325222/Dimitri-doesnt-need-SQL] This lexical ordering is also known as "order of execution" and is strict in the sense that every SQL query must follow the same hierarchy of commands. Here is how [Julia Evans](https://twitter.com/b0rk) lays it out in her wonderful zine, [*Become A Select Star*](https://wizardzines.com/zines/sql/) (which you should totally buy).
 
-And yet... At some point you may still find yourself wanting or needing to use SQL code to query a database from R (or directly within a database for that matter). Thankfully, this is easily done with the `DBI` package. The same `DBI::dbGetQuery()` function that we used earlier to establish the original database connection (i.e. `con`) also accepts "raw" SQL code.
+![](https://wizardzines.com/zines/sql/samples/from.png)
+I don't really want to go through all of this now. But I do want to make you aware of the fact that SQL queries are not written in the order that we would think about them. While it can take a while to wrap your head around, the good news is that it is certainly learnable. Again, I recommend Julia's [zine](https://wizardzines.com/zines/sql/) as a great starting point ([here](https://www.eversql.com/sql-order-of-operations-sql-query-order-of-execution/) and [here](https://blog.jooq.org/2016/12/09/a-beginners-guide-to-the-true-order-of-sql-operations/) are good resources too.) 
+
+Now, at this point, you may be wondering: Do we even need to learn SQL, given that it's a pain and that the **dplyr** translation works so well? 
+
+That's a fair question. The short answer is that, "yes", at some point you will probably find yourself needing to write raw SQL code. The good news is that writing and submitting SQL queries directly from R and RStudio is easily done, thanks to the **DBI** package. I'll walk you through two different ways of doing so below. But first, let's generate (translate) a simple SQL query that we can use as an example. 
 
 
 ```r
@@ -387,9 +368,56 @@ flights_db %>% filter(dep_delay > 240) %>% head(5) %>% show_query()
 ## LIMIT 5
 ```
 
+**Note:** In the SQL code chunks that follow, I'm going to be dropping the backticks around the object names (`dep_delay` and `flights`), as well as the parentheses around the `WHERE` filter. These aren't strictly necessary and are just extra safeguards that the **dplyr** translation uses to ensure compatibility across the various potential SQL backends. Feel free to include them if you want, though. It won't do any harm. 
+
+### Option 1: Use R Markdown `sql` chunks
+
+If you're writing up a report or paper in R Markdown, then you can include SQL chunks directly in your .Rmd file. All you need to do is specify your code chunk type as `sql` and R Markdown (via **knitr**) will automatically call the **DBI** package to execute the query. The [R Markdown book](https://bookdown.org/yihui/rmarkdown/language-engines.html#sql) provides a more detailed discussion of the different chunk options that power the `sql` engine output. However, to execute our simple query example from earlier (including specifying the connection), the following would suffice.
+
+````markdown
+```{sql, connection=con}
+SELECT *
+FROM flights
+WHERE dep_delay > 240
+LIMIT 5
+```
+````
+
+And, just to prove it, here's the same query / code chunk evaluated directly in these lecture notes.
+
+
+```sql
+SELECT *
+FROM flights
+WHERE dep_delay > 240
+LIMIT 5
+```
+
+
+<div class="knitsql-table">
+
+
+Table: 5 records
+
+ year   month   day   dep_time   sched_dep_time   dep_delay   arr_time   sched_arr_time   arr_delay  carrier    flight  tailnum   origin   dest    air_time   distance   hour   minute    time_hour
+-----  ------  ----  ---------  ---------------  ----------  ---------  ---------------  ----------  --------  -------  --------  -------  -----  ---------  ---------  -----  -------  -----------
+ 2013       1     1        848             1835         853       1001             1950         851  MQ           3944  N942MQ    JFK      BWI           41        184     18       35   1357081200
+ 2013       1     1       1815             1325         290       2120             1542         338  EV           4417  N17185    EWR      OMA          213       1134     13       25   1357063200
+ 2013       1     1       1842             1422         260       1958             1535         263  EV           4633  N18120    EWR      BTV           46        266     14       22   1357066800
+ 2013       1     1       2115             1700         255       2330             1920         250  9E           3347  N924XJ    JFK      CVG          115        589     17        0   1357077600
+ 2013       1     1       2205             1720         285         46             2040         246  AA           1999  N5DNAA    EWR      MIA          146       1085     17       20   1357077600
+
+</div>
+
+
+### Option 2: Use DBI:dbGetQuery()
+
+Of course, we don't want to be limited to running SQL queries from within R Markdown documents. To run SQL queries in regular R scripts, we can use the `DBI::dbGetQuery()` function.
+
+
 ```r
-## Run the query using SQL directly on the connnection.
-dbGetQuery(con, "SELECT * FROM `flights` WHERE (`dep_delay` > 240.0) LIMIT 5")
+## Run the query using SQL directly on the connection.
+dbGetQuery(con, "SELECT * FROM flights WHERE dep_delay > 240.0 LIMIT 5")
 ```
 
 ```
@@ -399,21 +427,23 @@ dbGetQuery(con, "SELECT * FROM `flights` WHERE (`dep_delay` > 240.0) LIMIT 5")
 ## 3 2013     1   1     1842           1422       260     1958           1535
 ## 4 2013     1   1     2115           1700       255     2330           1920
 ## 5 2013     1   1     2205           1720       285       46           2040
-##   arr_delay carrier flight tailnum origin dest air_time distance hour
-## 1       851      MQ   3944  N942MQ    JFK  BWI       41      184   18
-## 2       338      EV   4417  N17185    EWR  OMA      213     1134   13
-## 3       263      EV   4633  N18120    EWR  BTV       46      266   14
-## 4       250      9E   3347  N924XJ    JFK  CVG      115      589   17
-## 5       246      AA   1999  N5DNAA    EWR  MIA      146     1085   17
-##   minute  time_hour
-## 1     35 1357081200
-## 2     25 1357063200
-## 3     22 1357066800
-## 4      0 1357077600
-## 5     20 1357077600
+##   arr_delay carrier flight tailnum origin dest air_time distance hour minute
+## 1       851      MQ   3944  N942MQ    JFK  BWI       41      184   18     35
+## 2       338      EV   4417  N17185    EWR  OMA      213     1134   13     25
+## 3       263      EV   4633  N18120    EWR  BTV       46      266   14     22
+## 4       250      9E   3347  N924XJ    JFK  CVG      115      589   17      0
+## 5       246      AA   1999  N5DNAA    EWR  MIA      146     1085   17     20
+##    time_hour
+## 1 1357081200
+## 2 1357063200
+## 3 1357066800
+## 4 1357077600
+## 5 1357077600
 ```
 
-A safer and more integrated approach is to use the `glue::glue_sql()` function. This will allow you to 1) use local R variables in your SQL queries, and 2) divide long queries into sub-queries. Here's a simple example of the former.
+### Recommendation: Use glue::glue_sql()
+
+While the above approach works perfectly fine --- i.e. just write out the full SQL query string in quotation marks inside `dbGetQuery()` --- I'm going to recommend that you consider the `glue_sql()` function from the [**glue**](https://glue.tidyverse.org/) package. This provides a more integrated approach that allows you to 1) use local R variables in your SQL queries, and 2) divide long queries into sub-queries. Here's a simple example of the former.
 
 
 ```r
@@ -446,21 +476,21 @@ dbGetQuery(con, sql_query)
 ## 3 2013     1   1     1842           1422       260     1958           1535
 ## 4 2013     1   1     2115           1700       255     2330           1920
 ## 5 2013     1   1     2205           1720       285       46           2040
-##   arr_delay carrier flight tailnum origin dest air_time distance hour
-## 1       851      MQ   3944  N942MQ    JFK  BWI       41      184   18
-## 2       338      EV   4417  N17185    EWR  OMA      213     1134   13
-## 3       263      EV   4633  N18120    EWR  BTV       46      266   14
-## 4       250      9E   3347  N924XJ    JFK  CVG      115      589   17
-## 5       246      AA   1999  N5DNAA    EWR  MIA      146     1085   17
-##   minute  time_hour
-## 1     35 1357081200
-## 2     25 1357063200
-## 3     22 1357066800
-## 4      0 1357077600
-## 5     20 1357077600
+##   arr_delay carrier flight tailnum origin dest air_time distance hour minute
+## 1       851      MQ   3944  N942MQ    JFK  BWI       41      184   18     35
+## 2       338      EV   4417  N17185    EWR  OMA      213     1134   13     25
+## 3       263      EV   4633  N18120    EWR  BTV       46      266   14     22
+## 4       250      9E   3347  N924XJ    JFK  CVG      115      589   17      0
+## 5       246      AA   1999  N5DNAA    EWR  MIA      146     1085   17     20
+##    time_hour
+## 1 1357081200
+## 2 1357063200
+## 3 1357066800
+## 4 1357077600
+## 5 1357077600
 ```
 
-I know this seems like more work (undeniably so for this simple example). However, the `glue::glue_sql()` approach really pays off when you start working with bigger, nested queries.
+I know this seems like more work (undeniably so for this simple example). However, the `glue::glue_sql()` approach really pays off when you start working with bigger, nested queries. See the [documentation](https://glue.tidyverse.org/reference/glue_sql.html) for more examples and functionality, including how to match on or iterate over or multiple input values.
 
 ### Disconnect
 
@@ -480,9 +510,9 @@ Now that you've hopefully absorbed the key principles of database interaction fr
 - **Economy.** It is extremely fast and economical to use. (See: [Pricing](https://cloud.google.com/bigquery/pricing).) Even disregarding our free trial period, you are allowed to query 1 TB of data for free each month.^[That's "T" as in *terabytes*.] Each addtional TB beyond that will only cost you $5 once your free trial ends. Storage is also very cheap, although you already have access to an array of public datasets. Speaking of which...
 - **Data availability.** BigQuery hosts several [sample tables](https://cloud.google.com/bigquery/public-data/#sample_tables) to get you started. Beyond that, however, there are some incredible [public datasets](https://www.reddit.com/r/bigquery/wiki/datasets) available on the platform. You can find everything from NOAA's worldwide weather records... to Wikipedia data... to Facebook comments... to liquor sales in Iowa... to real estate transactions across Latin America. I daresay you could generate an effective research program simply by staring at these public datasets.
 
-Most heavy BigQuery users tend to interact with the platform directly in the [web UI](https://console.cloud.google.com/bigquery). This has a bunch of nice features like automatic SQL query formatting and table previewing. I recommend you try the BigQuery web UI out after going through these lecture notes.^[[Here's](https://towardsdatascience.com/bigquery-without-a-credit-card-discover-learn-and-share-199e08d4a064) a neat example showing how to find the most popular "Alan" according to Wikipedia page views.] For now, however, I'll focus on interacting with BigQuery databases from R, with help from the very useful [**bigrquery** package](https://bigrquery.r-dbi.org/).
+Most heavy BigQuery users tend to interact with the platform directly in the [web UI](https://console.cloud.google.com/bigquery). This has a bunch of nice features like automatic SQL query formatting and table previewing. I recommend you try the BigQuery web UI out after going through these lecture notes.^[[Here's](https://towardsdatascience.com/bigquery-without-a-credit-card-discover-learn-and-share-199e08d4a064) a neat example showing how to find the most popular "Alan" according to Wikipedia page views.] For now, however, I'll focus on interacting with BigQuery databases from R, with help from the very useful [**bigrquery**](https://bigrquery.r-dbi.org/) package.
 
-The starting point for using the `bigrquery` package is to provide your GCP project billing ID. It's easy enough to specify this as a string directly in your R script. However, you may recall that we already stored our GCP credentials during the [cloud computing lecture](https://raw.githack.com/uo-ec607/lectures/master/14-gce/14-gce.html). In particular, your project ID should be saved as an environment variable in the `.Renviron` file in your home directory.^[We did this as part of the authentication process of the `googleComputeEngineR` package. If you aren't sure, you can confirm for yourself by running `usethis::edit_r_environ()` in your R console. If you don't see a variable called `GCE_DEFAULT_PROJECT_ID`, then you should rather specify your project ID directly.] In that case, we can just call it by using the `Sys.getenv()` command. I'm going to use this latter approach, since it provides a safe and convenient way for me to share these lecture notes without compromising security. But as you wish.
+The starting point for using the **bigrquery** package is to provide your GCP project billing ID. It's easy enough to specify this as a string directly in your R script. However, you may recall that we already stored our GCP credentials during the [cloud computing lecture](https://raw.githack.com/uo-ec607/lectures/master/14-gce/14-gce.html). In particular, your project ID should be saved as an environment variable in the `.Renviron` file in your home directory.^[We did this as part of the authentication process of the **googleComputeEngineR** package. If you aren't sure, you can confirm for yourself by running `usethis::edit_r_environ()` in your R console. If you don't see a variable called `GCE_DEFAULT_PROJECT_ID`, then you should rather specify your project ID directly.] In that case, we can just call it by using the `Sys.getenv()` command. I'm going to use this latter approach, since it provides a safe and convenient way for me to share these lecture notes without compromising security. But as you wish.
 
 
 ```r
@@ -495,7 +525,7 @@ Having set our project IDs, we are now ready to run queries and download BigQuer
 
 ### Example 1) US birth data
 
-The `bigrquery` package supports various ways --- or "abstraction levels" --- of running queries from R, including interacting directly with the low-level API. In the interests of brevity, I'm only going to focus on the `dplyr` approach here.^[I encourage you to read the package documentation to see these other methods for yourself.] As with the the SQLite example from earlier, we start by establishing a connection using `DBI::dbConnect()`. The only difference this time is that we need to specify that are using the BigQuery backend (via `bigrquery::bigquery()`) and provide our credentials (via our project billing ID). Let's proceed by connecting to the "publicdata.samples" dataset.
+The `bigrquery` package supports various ways --- or "abstraction levels" --- of running queries from R, including interacting directly with the low-level API. In the interests of brevity, I'm only going to focus on the **dplyr** approach here.^[I encourage you to read the package documentation to see these other methods for yourself.] As with the the SQLite example from earlier, we start by establishing a connection using `DBI::dbConnect()`. The only difference this time is that we need to specify that are using the BigQuery backend (via `bigrquery::bigquery()`) and provide our credentials (via our project billing ID). Let's proceed by connecting to the "publicdata.samples" dataset.
 
 
 ```r
@@ -521,7 +551,11 @@ dbListTables(bq_con)
 ```
 
 ```
-## Auto-refreshing stale OAuth token.
+## Using an auto-discovered, cached token.
+## To suppress this message, modify your code or options to clearly consent to the use of a cached token.
+## See gargle's "Non-interactive auth" vignette for more details:
+## https://gargle.r-lib.org/articles/non-interactive-auth.html
+## The bigrquery package is using a cached token for grant.mcdermott@gmail.com.
 ```
 
 ```
@@ -559,7 +593,7 @@ bw %>%
 
 ![](16-databases_files/figure-html/bw_plot-1.png)<!-- -->
 
-For the record, I have no idea why birth weights are falling over time and whether that is a good (e.g. declining maternal obesity rates) or bad (e.g. maternal malutrition) thing. One thing we can do, however, is provide a more disaggregated look at the data. This time, I'll query the natality table in a way that summarises mean bith weight by US state and gender. 
+For the record, I don't know why birth weights have been falling recently, and whether that is a good (e.g. declining maternal obesity rates) or bad (e.g. maternal malutrition) thing.^[See [here](https://twitter.com/grant_mcdermott/status/1156260684126048256) for more discussion and help from some epidemiologists on Twitter.] One thing we can do, however, is provide a more disaggregated look at the data. This time, I'll query the natality table in a way that summarises mean bith weight by US state and gender. 
 
 
 ```r
@@ -651,19 +685,19 @@ effort
 ```
 ## # Source:   table<fishing_effort> [?? x 8]
 ## # Database: BigQueryConnection
-##    date  lat_bin lon_bin flag  geartype vessel_hours fishing_hours
-##    <chr>   <int>   <int> <chr> <chr>           <dbl>         <dbl>
-##  1 2012…    -879    1324 AGO   purse_s…        5.76          0    
-##  2 2012…   -5120   -6859 ARG   trawlers        1.57          1.57 
-##  3 2012…   -5120   -6854 ARG   purse_s…        3.05          3.05 
-##  4 2012…   -5119   -6858 ARG   purse_s…        2.40          2.40 
-##  5 2012…   -5119   -6854 ARG   trawlers        1.52          1.52 
-##  6 2012…   -5119   -6855 ARG   purse_s…        0.786         0.786
-##  7 2012…   -5119   -6853 ARG   trawlers        4.60          4.60 
-##  8 2012…   -5118   -6852 ARG   trawlers        1.56          1.56 
-##  9 2012…   -5118   -6850 ARG   trawlers        1.61          1.61 
-## 10 2012…   -5117   -6849 ARG   trawlers        0.797         0.797
-## # … with more rows, and 1 more variable: mmsi_present <int>
+##    date   lat_bin lon_bin flag  geartype vessel_hours fishing_hours mmsi_present
+##    <chr>    <int>   <int> <chr> <chr>           <dbl>         <dbl>        <int>
+##  1 2012-…    -879    1324 AGO   purse_s…        5.76          0                1
+##  2 2012-…   -5120   -6859 ARG   trawlers        1.57          1.57             1
+##  3 2012-…   -5120   -6854 ARG   purse_s…        3.05          3.05             1
+##  4 2012-…   -5119   -6858 ARG   purse_s…        2.40          2.40             1
+##  5 2012-…   -5119   -6854 ARG   trawlers        1.52          1.52             1
+##  6 2012-…   -5119   -6855 ARG   purse_s…        0.786         0.786            1
+##  7 2012-…   -5119   -6853 ARG   trawlers        4.60          4.60             1
+##  8 2012-…   -5118   -6852 ARG   trawlers        1.56          1.56             1
+##  9 2012-…   -5118   -6850 ARG   trawlers        1.61          1.61             1
+## 10 2012-…   -5117   -6849 ARG   trawlers        0.797         0.797            1
+## # … with more rows
 ```
 
 Now, we can do things like find out who are the top fishing nations by total number of hours fished. As we can see, China is by far the dominant player on the world stage:
@@ -696,12 +730,12 @@ effort %>%
 
 #### Aside on date partitioning
 
-One thing I wanted to flag quickly is that many tables and databases in BigQuery are [date partitioned](https://cloud.google.com/bigquery/docs/best-practices-costs#partition_data_by_date), i.e. ordered according to timestamps of when the data were ingensted. The GFW data, for example, are date partitioned since this provides a more cost-effective way to query datasets. My reason for mentioning this is because it requires a minor tweak to the way we're going to query or manipulate the GFW data by date.^[You may have noticed that the "date" column in the `effort` table above is actually a character string. So you would need to convert this column to a date variable first, before using it to do any standard date filtering operations. Even then it's going to be less efficient than the partitioning approach that we're about to see.] The way this works in native SQL is to reference a special `_PARTITIONTIME` pseudo column if you want to, say, filter according to date. (See [here](https://globalfishingwatch.org/data-blog/our-data-in-bigquery/) for some examples.) There's no exact `dplyr` translation of this `_PARTITIONTIME` pseudo column. Fortunately, the very simple solution is to specify it as an SQL variable directly in our `dplyr` call using backticks. Here's an example that again identifies the world's top fishing nations, but this time limits the analysis to data from 2016 only.
+One thing I wanted to flag quickly is that many tables and databases in BigQuery are [date partitioned](https://cloud.google.com/bigquery/docs/best-practices-costs#partition_data_by_date), i.e. ordered according to timestamps of when the data were ingensted. The GFW data, for example, are date partitioned since this provides a more cost-effective way to query datasets. My reason for mentioning this is because it requires a minor tweak to the way we're going to query or manipulate the GFW data by date.^[You may have noticed that the "date" column in the `effort` table above is actually a character string. So you would need to convert this column to a date variable first, before using it to do any standard date filtering operations. Even then it's going to be less efficient than the partitioning approach that we're about to see.] The way this works in native SQL is to reference a special `_PARTITIONTIME` pseudo column if you want to, say, filter according to date. (See [here](https://globalfishingwatch.org/data-blog/our-data-in-bigquery/) for some examples.) There's no exact **dplyr** translation of this `_PARTITIONTIME` pseudo column. Fortunately, the very simple solution is to specify it as an SQL variable directly in our **dplyr** call using backticks. Here's an example that again identifies the world's top fishing nations, but this time limits the analysis to data from 2016 only.
 
 
 ```r
 effort %>%
-  ## Here comes the filtering on partion time
+  ## Here comes the filtering on partition time
   filter(
     `_PARTITIONTIME` >= "2016-01-01 00:00:00",
     `_PARTITIONTIME` <= "2016-12-31 00:00:00"
@@ -799,7 +833,7 @@ dbDisconnect(gfw_con)
 
 ## Where to next: Learning and practicing SQL
 
-I realise that I've been somewhat dismissive about SQL in these lecture notes. My goal has been to get you up running and running with databases as quickly and painlessly as possible. I also do think that you can get a great deal of mileage using the `dplyr` database integration that we've focused on here. However, learning SQL will make a big difference to your life once you start working with databases regularly. I expect that it will also boost your employment options significantly. The good news is that you are already well on your way to internalising the basic commands and structure of SQL queries. We've seen the `show_query()` function, which is a great way to get started if your coming from R and the tidyverse. Another helpful `dplyr` resource is the provided by the "sql-translation" vignette, so take a look:
+I realise that this lecture has not gone into much depth about SQL itself. My goal has been to get you up running and running with databases as quickly and painlessly as possible. I really do think that you can get a great deal of mileage using the **dplyr** database integration that we've focused on here. However, learning SQL will make a big difference to your life once you start working with databases regularly. I expect that it will also boost your employment options significantly. The good news is that you are already well on your way to internalising the basic commands and structure of SQL queries. We've seen the `show_query()` function, which is a great way to get started if your coming from R and the tidyverse. Another helpful **dplyr** resource is the provided by the "sql-translation" vignette, so take a look:
 
 
 ```r
@@ -813,5 +847,7 @@ In my experience, though the best best way to learn SQL is simply to *start writ
 
 You are spoilt for choice here and I've already hyperlinked to many resources throughout this lecture. So here are some final suggestions to get you querying databases like a boss.
 
-- [Juan Mayorga](https://twitter.com/juansmayorga) has an outstanding tutorial on "[Getting Global Fishing Watch Data from Google Big Query using R](http://jsmayorga.com/post/getting-global-fishing-watch-from-google-bigquery-using-r)". He also dives into some reasons why you might want to learn SQL and provides several examples. Highly recommended.
-- If you want a dedicated resource for learning SQL, then there are loads of online tutorials (e.g. [W3Schools](https://www.w3schools.com/sql/default.asp)) and courses (e.g. [Codecademy](https://www.codecademy.com/learn/learn-sql)).
+- [Juan Mayorga](https://twitter.com/juansmayorga) has a super tutorial on "[Getting Global Fishing Watch Data from Google Big Query using R](http://jsmayorga.com/post/getting-global-fishing-watch-from-google-bigquery-using-r)". He also dives into some of the reasons why you might want to learn SQL (i.e. beyond just using the **dplyr** translation).
+- If you want a dedicated resource for learning SQL, then again I'm going to stump for [Julia Evans'](https://twitter.com/b0rk) [*Become A Select Star*](https://wizardzines.com/zines/sql/). It's a great, concise introduction to the major concepts and a steal at only $12. 
+- On the other end of the scale, the official BigQuery [documentation](https://cloud.google.com/bigquery/docs/) provides an exhaustive overview of the many functions and syntax for so-called standard SQL (including specialised operations on say, datetime and JSON objects).
+- There are also loads of online tutorials (e.g. [W3Schools](https://www.w3schools.com/sql/default.asp)) and courses (e.g. [Codecademy](https://www.codecademy.com/learn/learn-sql)) that you can check out.
