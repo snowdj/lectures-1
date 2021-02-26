@@ -8,12 +8,34 @@ author:
 output: 
   html_document:
     theme: flatly
-    highlight: haddock 
+    highlight: haddock
     # code_folding: show
     toc: yes
     toc_depth: 4
     toc_float: yes
-    keep_md: true
+    keep_md: false
+    keep_tex: false ## Change to true if want keep intermediate .tex file
+    css: css/preamble.css ## For multi-col environments
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    dev: cairo_pdf
+    # fig_width: 7 ## Optional: Set default PDF figure width
+    # fig_height: 6 ## Optional: Set default PDF figure height
+    includes:
+      in_header: tex/preamble.tex ## For multi-col environments
+    pandoc_args:
+        --template=tex/mytemplate.tex ## For affiliation field. See: https://bit.ly/2T191uZ
+always_allow_html: true
+urlcolor: blue
+mainfont: cochineal
+sansfont: Fira Sans
+monofont: Fira Code ## Although, see: https://tex.stackexchange.com/q/294362
+## Automatically knit to both formats:
+knit: (function(inputFile, encoding) {
+ rmarkdown::render(inputFile, encoding = encoding, 
+ output_format = 'all') 
+ })
 ---
 
 ```{r setup, include=FALSE}
@@ -40,8 +62,8 @@ Here's a convenient way to install (if necessary) and load all of the above pack
 ```{r packages, cache=F, message=F}
 ## Load and install the packages that we'll be using today
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(tidyverse, httr, lubridate, hrbrthemes, janitor, jsonlite, listviewer, usethis)
-pacman::p_install_gh("sboysel/fredr") ## https://github.com/sboysel/fredr/issues/75
+pacman::p_load(tidyverse, httr, lubridate, hrbrthemes, janitor, jsonlite, fredr, 
+               listviewer, usethis)
 ## My preferred ggplot2 plotting theme (optional)
 theme_set(hrbrthemes::theme_ipsum())
 ```
@@ -49,7 +71,7 @@ theme_set(hrbrthemes::theme_ipsum())
 
 ## Recap from last time
 
-During the last lecture, we saw that websites and web applications fall into two categories: 1) Server-side and 2) Client-side. We then practised scraping data that falls into the first category --- i.e. rendered server-side --- using the **rvest** package. This technique focuses on CSS selectors (with help from [SelectorGadget](http://selectorgadget.com/)) and HTML tags. We also saw that webscraping often involves as much art as science. The plethora of CSS options and the flexibility of HTML itself means that steps which work perfectly well on one website can easily fail on another website.
+During the last lecture, we saw that websites and web applications fall into two categories: 1) Server-side and 2) Client-side. We then practiced scraping data that falls into the first category --- i.e. rendered server-side --- using the **rvest** package. This technique focuses on CSS selectors (with help from [SelectorGadget](http://selectorgadget.com/)) and HTML tags. We also saw that webscraping often involves as much art as science. The plethora of CSS options and the flexibility of HTML itself means that steps which work perfectly well on one website can easily fail on another website.
 
 Today we focus on the second category: Scraping web data that is rendered **client-side**. The good news is that, when available, this approach typically makes it much easier to scrape data from the web. The downside is that, again, it can involve as much art as it does science. Moreover, as I emphasised last time, just because because we *can* scrape data, doesn't mean that we *should* (i.e. ethical, legal and other considerations). These admonishments aside, let's proceed...
 
@@ -99,14 +121,20 @@ I wanted to begin with an example from NYC Open Data, because you don't need to 
 
 Here's a GIF of me completing these steps:
 
-![](pics/trees.gif)
+```{r trees_gif, echo = FALSE, out.width='100%'}
+if (knitr::is_html_output()){
+  knitr::include_graphics('pics/trees.gif')
+} else {
+  message("Sorry, this GIF is only available in the the HTML version of the notes.")
+}
+```
 
 Now that we've located the API endpoint, let's read the data into R. We'll do so using the `fromJSON()` function from the excellent **jsonlite** package ([link](https://cran.r-project.org/web/packages/jsonlite/index.html)). This will automatically coerce the JSON array into a regular R data frame. However, I'll go that little bit further and convert it into a tibble, since the output is nicer to work with.
 
 ```{r nyc1}
 # library(jsonlite) ## Already loaded
 
-nyc_trees <- 
+nyc_trees = 
   fromJSON("https://data.cityofnewyork.us/resource/nwxe-4ae8.json") %>%
   as_tibble()
 nyc_trees
@@ -145,11 +173,17 @@ Our second application will involve downloading data from the [**FRED API**](htt
 
 As nearly every economist could tell you, [FRED](https://fred.stlouisfed.org/) is a database maintained by the Federal Reserve Bank of St Louis. You know, the one that let's you plot cool interactive charts [like this one](https://fred.stlouisfed.org/series/GNPCA#0) of US GNP since 1929.
 
-<iframe src="https://fred.stlouisfed.org/graph/graph-landing.php?g=mPCo&width=670&height=475" scrolling="no" frameborder="0"style="overflow:hidden; width:670px; height:525px;" allowTransparency="true"></iframe>
+<iframe src="https://fred.stlouisfed.org/graph/graph-landing.php?g=yo2J&width=670&height=475" scrolling="no" frameborder="0" style="overflow:hidden; width:670px; height:525px;" allowTransparency="true" loading="lazy"  data-external="1"></iframe>
 
 </br>
 
-For this second example application, I'm going to show you how to download the data underlying the above chart using the FRED API. In fact, I'll go one better. First I'll show you how to download it yourself, so that you get an understanding of what's happening underneath the hood. Then I'll direct you to a package that does all of the API work for you.
+```{r fred_iframe, echo = FALSE, out.width='100%'}
+if (!knitr::is_html_output()){
+  message("Sorry, this interactive chart is only available in the the HTML version of the notes.")
+}
+```
+
+For this second example application, I'm going to show you how to download the data underlying the above chart using the FRED API. In fact, I'll go one better. First, I'll show you how to download it yourself, so that you get an understanding of what's happening underneath the hood. Then, I'll direct you to a package that does all of the API work for you.
 
 ### Do it yourself
 
@@ -189,11 +223,11 @@ Next, we'll use the `httr::GET()` function to request (i.e. download) the data. 
 ```{r fred2, cache=F}
 # library(httr) ## Already loaded above
 
-fred <- 
+fred = 
   httr::GET(
     url = "https://api.stlouisfed.org/", ## Base URL
-    path = paste0("fred/", endpoint), ## The API endpoint
-    query = params ## Our parameter list
+    path = paste0("fred/", endpoint),    ## The API endpoint
+    query = params                       ## Our parameter list
     )
 ```
 
@@ -207,22 +241,32 @@ Take a second to print the `fred` object in your console. What you'll see is pre
 ##   Size: 9.09 kB
 ```
 
-To extract the content (i.e. data) from of this response, I'll use the `httr::content()` function. Moreover, since we know that this content is a JSON array, we can convert it to an R object using `jsonlite::fromJSON()` as we did above. With that being said, we *don't* yet know what format the data will taken in R. (SPOILER: Okay, it will be a list.) I could use the base `str()` function to delve into the structure of the object. However, I want to take this opportunity to introduce you to the **listviewer** package ([link](https://github.com/timelyportfolio/listviewer)) ::jsonedit()`, which allows for interactive inspection of list objects.^[Complex nested lists are the law of the land when it comes to JSON data. Don't worry too much about this now, but the good news is that R ideally suited to parse and handle these nested lists. We'll see more examples later in the course when we start working with programming and spatial data.]
+To actually extract the content (i.e. data) from of this response, I'll use the `httr::content()` function. Moreover, since we know that this content is a JSON array, we can again convert it into an R object using `jsonlite::fromJSON()`.
 
 ```{r fred3, cache=F, out.width="100%", out.height="10%"}
-fred %>% 
-  httr::content("text") %>%
-  jsonlite::fromJSON() %>%
-  listviewer::jsonedit(mode = "view")
+fred = 
+  fred %>% 
+  httr::content("text") %>% ## Extract the reponse content (i.e. text)
+  jsonlite::fromJSON()      ## Convert from JSON to R object
+
+## What type of object did we get?
+typeof(fred)
 ```
 
-Luckily, this particular list object isn't too complicated. We can see that we're really interested in the `fred$observations` sub-element. I'll re-run most of the above code and then extract this element. I could do this in several ways, but will use the `purrr::pluck()` function here.
+It turns that the previous step has yielded a list object in R.^[complex nested lists are the law of the land when it comes to json information. don't worry too much about this now; just rest assured that r is well suited to handling these kinds of objects. it's one reason why r and json play so well together. we'll see more examples later in the course when we start working with programming and spatial data.] so now we need to inspect this list to better understand its structure before  extracting the information that we care about (and coerce it to a data frame.) I'd use the base `View()` function to do this in an interactive r session. but that won't work as well for these lecture notes. Instead, I'll use the `listviewer::jsonedit()` function to create an interactive widget that renders nicely in knitted r markdown documents.
+
+```{r fred3b, cache=F, out.width="100%", out.height="10%"}
+# View(fred) ## What I'd use in an interactive R session
+
+## library(listviewer)        ## Already loaded
+jsonedit(fred, mode = "view") ## Better for RMarkdown documents
+```
+
+Luckily, this particular list object isn't too complicated. We can see that what we're really interested in, is the `fred$observations` sub-element. I'll use `purrr::pluck()` to extract this element (there are various other ways to do this) and then coerce it to a tibble.
 
 ```{r fred4, cache=F}
-fred <-
+fred =
   fred %>% 
-  httr::content("text") %>%
-  jsonlite::fromJSON() %>%
   purrr::pluck("observations") %>% ## Extract the "$observations" list element
   # .$observations %>% ## I could also have used this
   # magrittr::extract("observations") %>% ## Or this
@@ -235,9 +279,9 @@ Okay! We've finally got our data and are nearly ready for some plotting. Recall 
 ```{r fred5, message=F}
 # library(lubridate) ## Already loaded above
 
-fred <-
+fred =
   fred %>%
-  mutate_at(vars(realtime_start:date), ymd) %>%
+  mutate(across(realtime_start:date, ymd)) %>%
   mutate(value = as.numeric(value)) 
 ```
 
@@ -277,7 +321,7 @@ Once this is done, you can then safely assign your key to an object --- includin
 
 ```{r get_renviron_current}
 ## Assign the environment variable to an R object
-my_api_key <- Sys.getenv("MY_API_KEY")
+my_api_key = Sys.getenv("MY_API_KEY")
 ## Print it out just to show that it worked
 my_api_key
 ```
@@ -359,19 +403,25 @@ Fortunately, there's a better way: Access the full database of rankings through 
 
 Sweet. Looks like we've located our API endpoint. As promised, here's GIF of me walking through these steps in my browser:
 
-![](pics/inspect-rugby.gif)
+```{r inspect_rugby_gif, echo = FALSE, out.width='100%'}
+if (knitr::is_html_output()){
+  knitr::include_graphics('pics/inspect-rugby.gif')
+} else {
+  message("Sorry, this GIF is only available in the the HTML version of the notes.")
+}
+```
 
 ### Pulling the data into R
 
 Let's pull the data from the API endpoint into R. Again, I'll be using `jsonlite::readJSON()` function. 
 
 ```{r rugby1}
-endpoint <- "https://cmsapi.pulselive.com/rugby/rankings/mru?language=en&client=pulse"
-rugby <- fromJSON(endpoint)
+endpoint = "https://cmsapi.pulselive.com/rugby/rankings/mru?language=en&client=pulse"
+rugby = fromJSON(endpoint)
 str(rugby)
 ```
 
-We have a nested list, where what looks to be the main element of interest, `$entries`, is itself a list.^[I know that R says `rugby$entries` is a data.frame, but we can tell from the `str()` call that it follows a list structure. In particular, the `rugby$entries$team` sub-element is a itself data frame.] Let's extract the `$entries` element and have a look at its structure. We could use the `str()` base function, but again the interactivity of `listviewer::jsonedit()` is hard to beat for complicated list structures. 
+We have a nested list, where what looks to be the main element of interest, `$entries`, is itself a list.^[I know that R says `rugby$entries` is a data.frame, but we can tell from the `str()` call that it follows a list structure. In particular, the `rugby$entries$team` sub-element is a itself data frame.] Let's extract the `$entries` element and have a look at its structure. Again, I'd just use the base `View()` base in an interactive R session. Here I'm using `listviewer::jsonedit()` because it plays nicely with R Markdown documents. 
 
 ```{r rugby2, out.width="100%", out.height="10%"}
 # str(rugby$entries) ## Base option
@@ -389,7 +439,7 @@ Okay, a clearer picture is starting to emerge. It looks like we can just bind th
 ```{r rugby3, message=F}
 # library(janitor) ## Already loaded above
 
-rankings <-
+rankings =
   bind_cols(
     rugby$entries$team,
     rugby$entries %>% select(matches:previousPos)
@@ -416,11 +466,11 @@ We now have enough information to write a function that will loop over a set of 
 ```{r rugby4}
 ## We'll look at rankings around Jan 1st each year. I'll use 2004 as an
 ## arbitrary start year and then proceed until the present year.
-start_date <- ymd("2004-01-01")
-end_date <- floor_date(today(), unit="years")
-dates <- seq(start_date, end_date, by="years")
+start_date = ymd("2004-01-01")
+end_date = floor_date(today(), unit="years")
+dates = seq(start_date, end_date, by="years")
 ## Get the nearest Monday to Jan 1st to coincide with rankings release dates.
-dates <- floor_date(dates, "week", week_start = getOption("lubridate.week.start", 1))
+dates = floor_date(dates, "week", week_start = getOption("lubridate.week.start", 1))
 dates
 ```
 
@@ -433,11 +483,11 @@ Next, I'll write out a function that I'll call `rugby_scrape`. This function wil
 rm(rugby, rankings, endpoint)
 
 ## Now, create the function. I'll call it "rugby_scrape".
-rugby_scrape <- 
+rugby_scrape = 
   function(x) {
-    endpoint <- paste0("https://cmsapi.pulselive.com/rugby/rankings/mru?date=", x, "&client=pulse")
-    rugby <- fromJSON(endpoint)
-    rankings <-
+    endpoint = paste0("https://cmsapi.pulselive.com/rugby/rankings/mru?date=", x, "&client=pulse")
+    rugby = fromJSON(endpoint)
+    rankings =
       bind_cols(
         rugby$entries$team,
         rugby$entries %>% select(matches:previousPos)
@@ -455,7 +505,7 @@ rugby_scrape <-
 Finally, we can now iterate (i.e. loop) over our `dates` vector, by plugging the values sequentially into our `rugby_scrape` function. There are a variety of ways to iterate in R, but I'm going to use an `lapply()` call below.^[Again, don't worry too much about this now. We'll cover iteration and programming in more depth in a later lecture.] We'll then bind everything into a single data frame using `dplyr::bind_rows()` and name the resulting object `rankings_history`.
 
 ```{r rugby6}
-rankings_history <-
+rankings_history =
   lapply(dates, rugby_scrape) %>% ## Run the iteration
   bind_rows() ## Bind the resulting list of data frames into a single data frame
 rankings_history
@@ -471,8 +521,8 @@ Let's review what we just did:
 Okay! Let's plot the data and highlight a select few countries in the process.
 
 ```{r rugby7}
-teams <- c("NZL", "RSA", "ENG", "JPN")
-team_cols <- c("NZL"="black", "RSA"="#4DAF4A", "ENG"="#377EB8", "JPN" = "red")
+teams = c("NZL", "RSA", "ENG", "JPN")
+team_cols = c("NZL"="black", "RSA"="#4DAF4A", "ENG"="#377EB8", "JPN" = "red")
 
 rankings_history %>%
   ggplot(aes(x=date, y=pts, group=abbreviation)) +
@@ -490,9 +540,15 @@ rankings_history %>%
   theme(legend.title = element_blank())
 ```
 
-New Zealand's extended dominance in the global game is extraordinary, especially given its tiny population size. They truly do have a legimate claim to being the [greatest international team](https://www.dailytelegraph.com.au/sport/rugby/are-the-all-blacks-the-greatest-international-team-in-the-history-of-sport/news-story/f61ad2d65623a9586929bbfba386b157) in the history of professional sport.^[Obligatory link to the [best ever haka](https://www.youtube.com/watch?v=BFNCpzGnTTs).] OTOH, South African rugby supporters can finally (finally!) rejoice after a long dry spell. Bring 'er, Siya!
+New Zealand's extended dominance in the global game is extraordinary, especially given its tiny population size. They truly do have a legitimate claim to being the [greatest international team](https://www.dailytelegraph.com.au/sport/rugby/are-the-all-blacks-the-greatest-international-team-in-the-history-of-sport/news-story/f61ad2d65623a9586929bbfba386b157) in the history of professional sport.^[Obligatory link to the [best ever haka](https://www.youtube.com/watch?v=BFNCpzGnTTs).] OTOH, South African rugby supporters can finally (finally) rejoice after a long dry spell. Bring 'er home, Siya. Bing 'er home.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Forbz3lizUk" frameborder="0" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/Forbz3lizUk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
+
+```{r siya_youtube, echo = FALSE, out.width='100%'}
+if (!knitr::is_html_output()){
+  message("Sorry, this video is only available in the the HTML version of the notes.")
+}
+```
 
 ## Summary
 
@@ -502,10 +558,12 @@ New Zealand's extended dominance in the global game is extraordinary, especially
 - Some APIs don't require an access key or token, but most do. You can add this key as a parameter to the API endpoint.
 - Downloading content from an API endpoint to our local computer (i.e. R environment) can be done in a variety of ways.
    - E.g. `jsonlite::readJSON()` to read the the JSON array directly, or `httr::GET()` to download the entire response, or installing a package that does the job for us.
-- Next lecture: Regression analysis in R. (The start of the analysis and programming section of the course.)
+- **Next lecture:** Regression analysis in R. (The start of the analysis and programming section of the course.)
 
 
 ## Further resources and exercises
+
+- [Here](https://www.pscp.tv/w/1ynKOpVnERrGR) is a short, live video stream that I did for scraping traffic fatality data from [LA's Open Data portal](https://data.lacity.org/). As I mention in the video, this covers very similar ground to today's lecture. But I do expand a bit on using API parameters to query (i.e. wrangle and summarise) data directly up on the host server before scraping it.
 
 - [Tyler Clavelle](https://twitter.com/tclavl) has written several cool [blog posts](https://tclavelle.github.io/blog/) on interacting with APIs through R. I especially recommend going over --- and replicating --- his excellent [tutorial on the GitHub API](https://tclavelle.github.io/blog/r_and_apis/). 
 
@@ -514,3 +572,5 @@ New Zealand's extended dominance in the global game is extraordinary, especially
 - Greg Reda's "[Web Scraping 201: finding the API](http://www.gregreda.com/2015/02/15/web-scraping-finding-the-api/)" covers much of the same ground as we have here. While he focuses on Python tools, I've found it to be a handy reference over the years. (You can also take a look at the earlier posts in Greg's webscraping series --- [Part 1](http://www.gregreda.com/2013/03/03/web-scraping-101-with-python/) and [Part 2](http://www.gregreda.com/2013/04/29/more-web-scraping-with-python/) --- to see some Python equivalents of the `rvest` tools that we've been using.) 
 
 - Ian London (another Python user) has a nice blog post on "[Discovering hidden APIs](https://ianlondon.github.io/blog/web-scraping-discovering-hidden-apis/)" from Airbnb.
+
+- Finally, while the methods covered in the last two lectures should have you covered for 95% (99%?) of your webscraping needs, there are some corner cases where they won't work. In particular, you may run into cases where website content is rendered dynamically with JavaScript. In times like these, you'll need to spin up a so-called "headless" browser to extract the content. More [here](https://rud.is/b/2017/02/09/diving-into-dynamic-website-content-with-splashr/) and [here](https://twitter.com/grant_mcdermott/status/1192889722672041984).

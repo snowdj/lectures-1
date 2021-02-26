@@ -15,6 +15,14 @@ output:
 ---
 name: toc
 
+```{css, echo=FALSE}
+@media print {
+  .has-continuation {
+    display: block !important;
+  }
+}
+```
+
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = FALSE)
 library(knitr)
@@ -62,11 +70,11 @@ name: prologue
 
 --
 
-### New package(s) you will need for today.
+### Packages that you will need for today.
 
-Next class is when we're specifically going to focus on the [tidyverse](https://www.tidyverse.org/). However, I'll be using some functions and datasets from it today to illustrate a few general principles.
-- Install it now, either through RStudio (recommended) or directly from your R console (`install.packages("tidyverse"), dependencies = TRUE`). 
-- (It may take a while.)
+We're going to work almost exclusively in **base** R today.
+- I'll also use the [**dplyr**](https://dplyr.tidyverse.org/) package, but only to demonstrate a few additional considerations for working with non-base libraries. Install/update it now, either through RStudio (recommended) or from your R console (`install.packages("dplyr"), dependencies = TRUE`). 
+- (P.S. If you're on Linux, I recommend installing the pre-compiled binary version of **dplyr** from [RSPM](https://packagemanager.rstudio.com/client/#/repos/1/overview). This avoids the need to build the package from source, greatly reducing your installation time. See related example [here](https://twitter.com/grant_mcdermott/status/1263951531461603328).)
 
 ---
 
@@ -197,7 +205,7 @@ There's no equivalent "not in" command, but how might we go about creating one?
 --
 
 ```{r}
-`%ni%` <- Negate(`%in%`) ## The backticks (`) help to specify functions.
+`%ni%` = Negate(`%in%`) ## The backticks (`) help to specify functions.
 4 %ni% 5:10
 ```
 
@@ -248,7 +256,7 @@ all.equal(0.1 + 0.2, 0.3)
 
 # Assignment
 
-In R, we can use either `=` or `<-` to handle assignment.<sup>1</sup>
+In R, we can use either `<-` or `=` to handle assignment.<sup>1</sup>
 
 .footnote[
 <sup>1</sup> The `<-` is really a `<` followed by a `-`. It just looks like one thing b/c of the [font](https://github.com/tonsky/FiraCode) I'm using here.
@@ -291,7 +299,7 @@ b
 
 Most R users (purists?) seem to prefer `<-` for assignment, since `=` also has specific role for evaluation *within* functions. 
 - We'll see lots of examples of this later.
-- However, I don't think it matters. E.g. `=` is quicker to type and makes more sense if you're coming from another programming language. (More discussion [here](https://github.com/Robinlovelace/geocompr/issues/319#issuecomment-427376764) and [here](https://www.separatinghyperplanes.com/2018/02/why-you-should-use-and-never.html).)
+- But I don't think it matters; `=` is quicker to type and is more intuitive if you're coming from another programming language. (More discussion [here](https://github.com/Robinlovelace/geocompr/issues/319#issuecomment-427376764) and [here](https://www.separatinghyperplanes.com/2018/02/why-you-should-use-and-never.html).)
 
 **Bottom line:** Use whichever you prefer. Just be consistent.
 
@@ -299,29 +307,36 @@ Most R users (purists?) seem to prefer `<-` for assignment, since `=` also has s
 
 # Help
 
-If you are struggling with a (named) function or object in R, simply type "help", e.g.
+For more information on a (named) function or object in R, consult the "help" documentation. For example:
 
 ```R
-help(solve)
+help(plot)
 ```
 
-Or, more simply, just use "?":
+Or, more simply, just use `?`:
   
 ```R
 # This is what most people use.
-?solve 
+?plot 
 ```
 
 --
 
 </br>
 
-**Aside:** Comments in R are demarcated by `#`. 
+**Aside 1:** Comments in R are demarcated by `#`. 
 - Hit `Ctrl+Shift+c` in RStudio to (un)comment whole sections of highlighted code.
+
+--
+
+**Aside 2:** See the *Examples* section at the bottom of the help file?
+- You can run them with the `example()` function. Try it: `example(plot)`.
 
 ---
 
 # Help (cont.)
+
+### Vignettes
 
 For many packages, you can also try the `vignette()` function, which will provide an introduction to a package and it's purpose through a series of helpful examples.
 - Try running `vignette("dplyr")` in your console now.
@@ -337,6 +352,32 @@ One complication is that you need to know the exact name of the package vignette
 - E.g. The `dplyr` package actually has several vignettes associated with it: "dplyr", "window-functions", "programming", etc.
 - You can run `vignette()` (i.e. without any arguments) to list the available vignettes of every *installed* package installed on your system. 
 - Or, run `vignette(all = FALSE)` if you only want to see the vignettes of any *loaded* packages.
+
+---
+
+# Help (cont.)
+
+### Demos
+
+Similar to vignettes, many packages come with built-in, interactive demos.
+
+To list all available demos on your system:<sup>1</sup> 
+
+```r
+demo(package = .packages(all.available = TRUE))
+```
+
+.footnote[
+<sup>1</sup> How would you limit the demos to one particular package?
+]
+
+--
+
+To run a specific demo, just tell R which one and the name of the parent package. For example:
+
+```r
+demo("graphics", package = "graphics")
+```
 
 ---
 class: inverse, center, middle
@@ -403,55 +444,55 @@ We'll revisit the issue of "type" vs "class" in a slide or two. For the moment, 
 
 Most likely, you already have a good idea of what distinguishes these objects and how to use them.
 - However, bear in mind that there subtleties that may confuse while you're still getting used to R. 
-- E.g. There are different kinds of data frames; you'll soon encounter "[tibbles](https://tibble.tidyverse.org/)", which are an enhanced data frame provided by the tidyverse.
+- E.g. There are different kinds of data frames. We'll soon encounter "[tibbles](https://tibble.tidyverse.org/)" and "[data.tables](https://rdatatable.gitlab.io/data.table/articles/datatable-intro.html#what-is-datatable-1a)", which are enhanced versions of the standard data frame in R. 
 
 ---
 
 # What are objects? (cont.)
 
-Each object class has its own set of rules governing how that object can be used in R.
+Each object class has its own set of rules ("methods") for determining valid operations.
 - For example, you can perform many of the same operations on matrices and data frames. But there are some operations that only work on a matrix, and vice versa.
-- At the same time, you can (often) convert an object from one type to another.
+- At the same time, you can (usually) convert an object from one type to another.
 
-```{r df}
-## Create a small data frame called "df".
-df <- data.frame(x = 1:2, y = 3:4) 
-df
+```{r d}
+## Create a small data frame called "d".
+d = data.frame(x = 1:2, y = 3:4) 
+d
 ```
 
-```{r, m}
+```{r m}
 ## Convert it to (i.e. create) a matrix call "m".
-m <- as.matrix(df)
+m = as.matrix(d)
 m
 ```
 
 ---
 
-# Object class, type and, structure
+# Object class, type, and structure
 
 Use the `class`, `typeof`, and `str` commands if you want understand more about a particular object.
 
 ```{r}
-# df <- data.frame(x = 1:2, y = 3:4) ## Create a small data frame called "df".
-class(df) ## Evaluate its class.
-typeof(df) ## Evaluate its type.
-str(df) ## Show its structure.
+# d = data.frame(x = 1:2, y = 3:4) ## Create a small data frame called "d".
+class(d) ## Evaluate its class.
+typeof(d) ## Evaluate its type.
+str(d) ## Show its structure.
 ```
 
 --
 
-PS — Confused by the fact that `typeof(df)` returns "list"? See [here](https://stackoverflow.com/questions/45396538/typeofdata-frame-shows-list-in-r).
+PS — Confused by the fact that `typeof(d)` returns "list"? See [here](https://stackoverflow.com/questions/45396538/typeofdata-frame-shows-list-in-r).
 
 ---
 
 # Object class, type, and structure (cont.)
 
 Of course, you can always just inspect/print an object directly in the console.
-- E.g. Type `df` and hit Enter.
+- E.g. Type `d` and hit Enter.
 
 
-The `View()` function is also very helpful.
-- E.g. `View(df)`.
+The `View()` function is also very helpful. This is the same as clicking on the object in your RStudio *Environment* pane. (Try both methods now.)
+- E.g. `View(d)`.
 
 ---
 
@@ -459,7 +500,7 @@ The `View()` function is also very helpful.
 
 Let's go back to the simple data frame that we created a few slides earlier.
 ```{r}
-df
+d
 ```
 
 --
@@ -496,7 +537,7 @@ R can't find the variables that we've supplied in our [Global Environment](https
 
 --
 
-Put differently: Because the variables "x" and "y" live as separate objects in the global environment, we have to tell R that they belong to the object `df`.
+Put differently: Because the variables "x" and "y" live as separate objects in the global environment, we have to tell R that they belong to the object `d`.
 - Think about how you might do this before clicking through to the next slide.
 
 ---
@@ -506,12 +547,12 @@ Put differently: Because the variables "x" and "y" live as separate objects in t
 There are a various ways to solve this problem. One is to simply specify the datasource:
 
 ```{r}
-lm(y ~ x, data = df) ## Works when we add "data = df"!
+lm(y ~ x, data = d) ## Works when we add "data = d"!
 ```
 
 --
 
-I wanted to emphasize this global environment issue, because it is something that Stata users (i.e. most economists) struggle with when they first come to R.
+I wanted to emphasize this global environment issue, because it is something that Stata users (i.e. many economists) struggle with when they first come to R.
 - In Stata, the entire workspace essentially consists of one (and only one) data frame. So there can be no ambiguity where variables are coming from.
 - However, that "convenience" comes at a really high price IMO. You can never read more than two separate datasets (let alone object types) into memory at the same time, have to resort all sorts of hacks to add summary variables to your dataset, etc. 
 - Speaking of which...
@@ -522,17 +563,20 @@ I wanted to emphasize this global environment issue, because it is something tha
 # Working with multiple objects
 
 As I keep saying, R's ability to keep multiple objects in memory at the same time is a huge plus when it comes to effective data work. 
-- E.g. We can create a new data frame that exists happily with our existing objects in the global environment.
+- E.g. We can copy an exiting data frame, or create new one entirely from scratch. Either will exist happily with our existing objects in the global environment.
 
-```{r df2}
-df2 <- data.frame(x = rnorm(10), y = runif(10))
+```{r d2}
+d2 = data.frame(x = rnorm(10), y = runif(10))
 ```
 
-![Now with df2 added](pics/environment2.png)
+![Now with d2 added](pics/environment2.png)
 
---
+---
+
+# Working with multiple objects (cont.)
 
 Again, however, it does mean that you have to pay attention to the names of those distinct data frames and be specific about which objects you are referring to.
+- Do we want to run a regression of "y" on "x" from data frame `d` or data frame `d2`?
 
 ---
 class: inverse, center, middle
@@ -576,7 +620,7 @@ In addition to the list of strictly reserved words, there is a class of words an
 Arguably the most important semi-reserved character is `c()`, which we use for concatenation; i.e. creating vectors and binding different objects together.
 
 ```{r}
-my_vector <- c(1, 2, 5)
+my_vector = c(1, 2, 5)
 my_vector
 ```
 
@@ -585,7 +629,7 @@ my_vector
 What happens if you type the following? (Try it in your console.)
 
 ```R
-c <- 4
+c = 4
 c(1, 2 ,5)
 ```
 
@@ -600,12 +644,14 @@ Vectors are very important in R, because the language has been optimised for the
 
 *(Continued from previous slide.)*
 
-In this case, thankfully nothing. R is "smart" enough to distinguish between the variable `c <- 4` that we created and the built-in function `c()` that calls for concatenation.
+In this case, thankfully nothing. R is "smart" enough to distinguish between the variable `c = 4` that we created and the built-in function `c()` that calls for concatenation.
+
+--
 
 However, this is still *extremely* sloppy coding. R won't always be able to distinguish between conflicting definitions. And neither will you. For example:
 ```{r}
 pi
-pi <- 2
+pi = 2
 pi
 ```
 --
@@ -643,7 +689,7 @@ Whenever a namespace conflict arises, the most recently loaded package will gain
 
 But what if we want the `stats` variant? Well, we have two options:
 1. Temporarily use `stats::filter()`
-2. Permanently assign `filter <- stats::filter`
+2. Permanently assign `filter = stats::filter`
 
 ---
 
@@ -674,12 +720,12 @@ The `::` syntax also means that we can call functions without loading package fi
 
 # Solving namespace conflicts (cont.)
 
-### 2. Assign `function <- package::function`
+### 2. Assign `function = package::function`
   
 A more permanent solution is to assign a conflicted function name to a particular package. This will hold for the remainder of your current R session, or until you change it back. E.g.
 ```{r, eval=F}
-filter <- stats::filter ## Note the lack of parentheses.
-filter <- dplyr::filter ## Change it back again.
+filter = stats::filter ## Note the lack of parentheses.
+filter = dplyr::filter ## Change it back again.
 ```
 
 --
@@ -693,6 +739,23 @@ Another good rule of thumb is that you want to load your most important packages
 Other than that, simply pay attention to any warnings when loading a new package and `?` is your friend if you're ever unsure. (E.g. `?filter` will tell you which variant is being used.)
 - In truth, problematic namespace conflicts are rare. But it's good to be aware of them. 
   
+---
+
+# User-side namespace conflicts
+
+A final thing to say about namespace conflicts is that they don't only arise from loading packages. They can arise when users create their own functions with a conflicting name.
+- E.g. If I was naive enough to create a new function called `c()`.
+
+--
+
+</br>
+
+In a similar vein, one of the most common and confusing errors that even experienced R programmers run into is related to the habit of calling objects "df" or "data"... both of which are functions in base R!
+- See for yourself by typing `?df` or `?data`.
+
+Again, R will figure out what you mean if you are clear/lucky enough. But, much the same as with `c()`, it's relatively easy to run into problems.
+- Case in point: Triggering the infamous "object of type closure is not subsettable" error message. (See from 1:45 [here](https://rstudio.com/resources/rstudioconf-2020/object-of-type-closure-is-not-subsettable/).)
+
 ---
 class: inverse, center, middle
 name: indexing
@@ -731,7 +794,7 @@ rnorm(n = 100, mean = 0, sd = 1)
 
 More importantly, we can also use `[]` to index objects that we create in R.
 ```{r}
-a <- 1:10
+a = 1:10
 a[4] ## Get the 4th element of object "a"
 a[c(4, 6)] ## Get the 4th and 6th elements
 ```
@@ -757,7 +820,7 @@ We haven't covered them properly yet (patience), but **lists** are a more comple
 
 The relevance to indexing is that lists require two square brackets `[[]]` to index the parent list item and then the standard `[]` within that parent item. An example might help to illustrate:
 ```{r my_list, cache=T}
-my_list <- list(a = "hello", b = c(1,2,3), c = data.frame(x = 1:5, y = 6:10))
+my_list = list(a = "hello", b = c(1,2,3), c = data.frame(x = 1:5, y = 6:10))
 my_list[[1]] ## Return the 1st list object
 my_list[[2]][3] ## Return the 3rd element of the 2nd list object
 ```
@@ -816,6 +879,12 @@ my_list$b[3] ## Return the 3rd element of list object "b"
 my_list$c$x ## Return column "x" of list object "c"
 ```
 
+--
+
+</br>
+
+**Aside:** Typing `View(my_list)` (or, equivalently, clicking on the object in RStudio's environment pane) provides a nice interactive window for exploring the nested structure of lists.
+
 ---
 
 # Option 2: $ (cont.)
@@ -840,7 +909,7 @@ The last thing that I want to say about `$` is that it provides another way to a
 
 ```{r, error=T}
 lm(y ~ x) ## Doesn't work
-lm(df$y ~ df$x) ## Works!
+lm(d$y ~ d$x) ## Works!
 ```
 
 ---
@@ -857,8 +926,8 @@ name: cleaning
 
 Use `rm()` to remove an object or objects from your working environment.
 ```{r}
-a <- "hello"
-b <- "world"
+a = "hello"
+b = "world"
 rm(a, b)
 ```
 
@@ -890,7 +959,12 @@ You may also have noticed that RStudio has convenient buttons for clearing your 
 
 class: inverse, center, middle
 
-# Next class: Data wrangling and cleaning with the Tidyverse
+# Next lecture(s): Data wrangling and cleaning
 
 <html><div style='float:left'></div><hr color='#EB811B' size=1px width=796px></html>
 
+
+```{r gen_pdf, include = FALSE, cache = FALSE, eval = TRUE}
+infile = list.files(pattern = '.html')
+pagedown::chrome_print(input = infile, timeout = 100)
+```

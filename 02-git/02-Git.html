@@ -21,6 +21,14 @@ class: center, middle, inverse, title-slide
 ---
 
 
+&lt;style type="text/css"&gt;
+@media print {
+  .has-continuation {
+    display: block !important;
+  }
+}
+&lt;/style&gt;
+
 
 
 # Table of contents
@@ -63,13 +71,13 @@ Resources:
 
 Other points:
 - You will be submitting all of your assignments as R Markdown documents.
-- FWIW, my lecture slides and notes are all written in R Markdown too. (E.g. This slide deck is built using the [xaringan package](https://github.com/yihui/xaringan/wiki) with the metropolis theme.)
+- FWIW, my lecture slides and notes are all written in R Markdown too. (E.g. This slide deck is built using the [**xaringan**](https://github.com/yihui/xaringan/wiki) package with the metropolis theme.)
 
 ---
 
 # Before we start
 
-We went through a sofware installation check during the previous lecture. By now you should have:
+We went through a software installation check during the previous lecture. By now you should have:
 
 ☑ Installed [R](https://www.r-project.org/).
 
@@ -123,14 +131,14 @@ name: git
 
 ### From software development...
 
-Git and GitHub's role in global software develoment is not in question.
+Git and GitHub's role in global software development is not in question.
 - There's a high probability that your favourite app, program or package is built using Git-based tools. (RStudio is a case in point.)
 
 ### ... to scientific research
 
 Scientists and academic researchers are cottoning on too. 
 - Benefits of VC and collaboration tools aside, Git(Hub) helps to operationalise the ideals of open science and reproducibility.
-- Journals have increasingly strict requirements regarding reproducibility and data access. GH makes this easy (DOI integration, off-the-shelf licences, etc.)
+- Journals have increasingly strict requirements regarding reproducibility and data access. GH makes this easy (DOI integration, off-the-shelf licenses, etc.)
 - I host all of the code and data for my [papers](http://grantmcdermott.com/research/) on GH. Same for teaching materials. I even use it to host and maintain my [website](https://github.com/grantmcdermott/grantmcdermott.github.io).
 - *Nature:* "[Democratic databases: science on GitHub](https://www.nature.com/news/democratic-databases-science-on-github-1.20719)" (Perkel, 2016).
 
@@ -143,7 +151,7 @@ name: rstudio
 
 ---
 
-# Seemless integration
+# Seamless integration
 
 One of the (many) great features of RStudio is how well it integrates version control into your everyday workflow.
 - Even though Git is a completely separate program to R, they feel like part of the same "thing" in RStudio.
@@ -221,7 +229,7 @@ Now that you've cloned your first repo and made some local changes, it's time to
 3. **Pull**
   - Get any new changes made on the GitHub repo (i.e. the upstream remote), either by your collaborators or you on another machine.
 4. **Push**
-  - Push any (commited) local changes to the GitHub repo
+  - Push any (committed) local changes to the GitHub repo
 
 --
 
@@ -288,7 +296,7 @@ Creating the repo on GitHub first means that it will always be "upstream" of you
 - If you would like to move an existing project to GitHub, my advice is still to create an empty repo there first, clone it locally, and then copy all your files across.
 
 RStudio Projects are great. 
-- Again, they interact seemlessly with Git(Hub), as we've just seen. 
+- Again, they interact seamlessly with Git(Hub), as we've just seen. 
 - They also solve absolute vs. relative path problems, since the .Rproj file acts as an anchor point for all other files in the repo.&lt;sup&gt;1&lt;/sup&gt;
 
 .footnote[&lt;sup&gt;1&lt;/sup&gt; You know that calling files from `YourComputer/YourName/Documents/Special-Subfolder/etc` in your scripts makes you a bad person, right?]
@@ -321,7 +329,7 @@ However, I want to go over Git &lt;a href="http://happygitwithr.com/ssh-keys.htm
 
 # Main Git shell commands
 
-Clone the repo.
+Clone a repo.
 ```bash
 $ git clone REPOSITORY-URL
 ```
@@ -373,7 +381,7 @@ Pull from the upstream repository (i.e. GitHub).
 $ git pull
 ```
 
-Push any local changes that you've commited to the upstream repo (i.e. GitHub).
+Push any local changes that you've committed to the upstream repo (i.e. GitHub).
 ```bash
 $ git push
 ```
@@ -721,7 +729,7 @@ README files are special in GitHub because they act as repo landing pages.
 - On the other end of the scale, many GitHub repos are basically standalone README files. Think of these as version-controlled blog posts (e.g. [here](https://github.com/jfiksel/github-classroom-for-teachers)). 
 
 README files can also be added to the *sub-directories* of a repo, where they will act as a landing pages too.
-- Particularly useful for bigger projects. Say, where you are using multiple programming languages (e.g. [here](https://github.com/grantmcdermott/blueparadox/tree/master/R)), or want to add more detail about a dataset (e.g. [here](https://github.com/grantmcdermott/sceptic-priors/tree/master/Data)).
+- Particularly useful for bigger projects. Say, where you are using multiple programming languages (e.g. [here](https://github.com/grantmcdermott/blueparadox)), or want to add more detail about a dataset (e.g. [here](https://github.com/grantmcdermott/sceptic-priors/tree/master/data)).
 
 READMEs should be written in Markdown, which GH automatically renders.
 - We'll learn more about [Markdown](https://www.markdownguide.org/) (and its close relation, [R Markdown](https://rmarkdown.rstudio.com/)) during the course of our homework assignments.
@@ -756,7 +764,8 @@ Once the .gitignore file is created, simply add in lines of text corresponding t
 - To ignore a whole folder (and all of its contents, subfolders, etc.): `FOLDER-NAME/**`
 - The standard shell commands and special characters apply.
   - E.g. Ignore all CSV files in the repo: `*.csv`
-  - E.g. Ignore all files beginning with "test": `test*` 
+  - E.g. Ignore all files beginning with "test": `test*`
+  - E.g. Don't ignore a  particular file: `!somefile.txt`
 
 ---
 
@@ -863,6 +872,8 @@ name: faq
 &lt;div align="center"&gt;
 &lt;img src="https://imgs.xkcd.com/comics/git_2x.png" height=500&gt;
 &lt;/div&gt;
+
+
 
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
